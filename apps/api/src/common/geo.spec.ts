@@ -6,7 +6,7 @@ import {
 } from './geo';
 
 describe('geo', () => {
-  const office = { latitude: 1.0489, longitude: 99.7867 };
+  const office = { latitude: 1.0601, longitude: 99.6644 };
 
   it('menghitung jarak satu derajat lintang sekitar 111 km', () => {
     const distance = haversineDistanceMeters(

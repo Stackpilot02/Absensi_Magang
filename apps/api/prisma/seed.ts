@@ -51,9 +51,9 @@ async function main(): Promise<void> {
     create: {
       id: '11111111-1111-4111-8111-111111111111',
       name: 'Kantor BPS Kabupaten Padang Lawas',
-      // TODO: konfirmasi koordinat resmi kantor BPS Kab. Padang Lawas (Sibuhuan).
-      latitude: 1.0489,
-      longitude: 99.7867,
+      // Koordinat resmi: 1.0601° LU, 99.6644° BT (Plus Code 2PRV+8M8, Sibuhuan).
+      latitude: 1.0601,
+      longitude: 99.6644,
       radius: 100,
     },
   });

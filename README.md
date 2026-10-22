@@ -155,6 +155,7 @@ Semua endpoint berada di prefix `/api`.
 | GET | `/users/mentees` | admin/pembimbing |
 | PATCH | `/users/me` | terautentikasi |
 | POST | `/attendance/check-in`, `/attendance/check-out` | pegawai magang |
+| POST | `/attendance/instant` | sekali klik: mencatat jam datang & pulang sekaligus |
 | GET | `/attendance/today`, `/attendance/history`, `/attendance/summary` | sesuai role |
 | GET/POST/PATCH/DELETE | `/office-locations` | lihat: semua; ubah: admin |
 | POST/GET | `/leaves` | terautentikasi |
@@ -226,8 +227,9 @@ Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
   sehingga tidak mungkin ter-deploy dengan fallback `localhost`.
 - Secret & kredensial hanya dibaca dari environment variable, tidak di-hardcode.
 
-## TODO / Perlu Konfirmasi
+## Catatan Konfigurasi Kantor
 
-- Koordinat resmi kantor BPS Kabupaten Padang Lawas pada seed masih perkiraan
-  (lihat `apps/api/prisma/seed.ts`); sesuaikan lewat menu **Pengaturan** di aplikasi.
+- Koordinat kantor BPS Kabupaten Padang Lawas: **1.0601° LU, 99.6644° BT**
+  (Plus Code `2PRV+8M8`, Sibuhuan), radius absensi **100 meter**.
+  Nilai ini tersimpan di tabel `office_location` dan dapat diubah lewat menu **Pengaturan**.
 - Jam masuk kantor **07:30 WIB tanpa toleransi** (diubah 22 Oktober 2026; sebelumnya 08:00 + 15 menit).

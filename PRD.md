@@ -87,8 +87,13 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
    `NEXT_PUBLIC_API_URL` kosong atau bukan URL absolut.
 
 ### Asumsi yang perlu dikonfirmasi
-- Koordinat kantor BPS Kabupaten Padang Lawas pada seed masih perkiraan (Sibuhuan).
+- Koordinat kantor BPS Kabupaten Padang Lawas: 1.0601° LU, 99.6644° BT (Plus Code 2PRV+8M8,
+  Sibuhuan), radius 100 m — dikonfirmasi 22 Oktober 2026.
 - Jam masuk 07:30 dan tanpa toleransi keterlambatan (diubah 22 Oktober 2026; sebelumnya 08:00 + 15 menit).
+- **Buat Kehadiran (sekali klik)**: pegawai dapat mencatat jam datang dan pulang sekaligus
+  dengan waktu server saat tombol ditekan. Aturan geofence, anti-manipulasi jam, hari libur,
+  periode magang, dan satu absensi per hari tetap berlaku; gunakan dengan bijak karena satu
+  klik menghasilkan absensi sehari penuh.
 - `LIBUR` hanya Sabtu/Minggu; hari libur nasional belum dikelola sebagai master data.
 
 ### Di luar cakupan iterasi ini
