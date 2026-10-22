@@ -17,6 +17,15 @@ export class CreateLeaveDto {
   reason!: string;
 }
 
+export class ListLeavesQueryDto {
+  /** Filter status pengajuan (PENDING/APPROVED/REJECTED). */
+  @IsOptional()
+  @IsEnum(LeaveStatus, {
+    message: 'Status pengajuan harus salah satu dari PENDING, APPROVED, atau REJECTED.',
+  })
+  status?: LeaveStatus;
+}
+
 export class ReviewLeaveDto {
   @IsEnum(LeaveStatus, { message: 'Status peninjauan tidak valid.' })
   status!: LeaveStatus;

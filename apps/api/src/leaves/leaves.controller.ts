@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { LeaveRequest, LeaveStatus, Role } from '@prisma/client';
+import { LeaveRequest, Role } from '@prisma/client';
 import { LeavesService } from './leaves.service';
-import { CreateLeaveDto, ReviewLeaveDto } from './dto/leave.dto';
+import { CreateLeaveDto, ListLeavesQueryDto, ReviewLeaveDto } from './dto/leave.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
@@ -18,9 +18,9 @@ export class LeavesController {
   @Get()
   findAll(
     @CurrentUser() user: AuthUser,
-    @Query('status') status?: LeaveStatus,
+    @Query() query: ListLeavesQueryDto,
   ): Promise<LeaveRequest[]> {
-    return this.leavesService.findAll(user, status);
+    return this.leavesService.findAll(user, query.status);
   }
 
   @Patch(':id/review')
