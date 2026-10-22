@@ -31,6 +31,7 @@ jobs:
       JWT_SECRET: ci-only-secret-tidak-dipakai-di-production
       JWT_EXPIRES_IN: 8h
       CORS_ORIGIN: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
       TZ: Asia/Jakarta
     steps:
       - uses: actions/checkout@v4

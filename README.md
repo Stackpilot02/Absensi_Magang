@@ -202,6 +202,9 @@ Catatan Neon untuk production:
 - Neon meng-*suspend* compute setelah idle. Backend sudah melakukan retry koneksi
   otomatis (3 percobaan) dan menyediakan `GET /api/health/db` untuk uptime monitor.
 - Aktifkan **History retention / backup** pada project Neon untuk kebutuhan audit.
+- `CORS_ORIGIN` harus **sama persis** dengan origin frontend (contoh `https://absensi.example.com`,
+  tanpa trailing slash). Nilai ini dipakai untuk CORS sekaligus validasi `Origin` anti-CSRF,
+  dan boleh berisi beberapa origin dipisahkan koma.
 
 Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
 `COOKIE_SAME_SITE=none` dan `COOKIE_SECURE=true` agar cookie JWT terkirim.
@@ -214,6 +217,13 @@ Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
 - Semua input divalidasi `class-validator` + `ValidationPipe` (whitelist, forbid unknown).
 - Query memakai Prisma sehingga bebas SQL injection; rendering React meng-escape XSS.
 - Header keamanan dasar dipasang di Next.js (`X-Frame-Options`, `nosniff`, `Referrer-Policy`).
+- `OriginGuard` menolak request yang mengubah data (POST/PATCH/PUT/DELETE) bila header
+  `Origin` berasal dari luar `CORS_ORIGIN`. Ini pertahanan CSRF karena di production
+  cookie memakai `SameSite=None` (frontend dan backend berbeda domain).
+- `COOKIE_SAME_SITE=none` wajib disertai `COOKIE_SECURE=true`; aplikasi menolak start
+  bila kombinasinya salah, agar login tidak gagal diam-diam di browser.
+- Build production frontend gagal bila `NEXT_PUBLIC_API_URL` kosong atau bukan URL absolut,
+  sehingga tidak mungkin ter-deploy dengan fallback `localhost`.
 - Secret & kredensial hanya dibaca dari environment variable, tidak di-hardcode.
 
 ## TODO / Perlu Konfirmasi

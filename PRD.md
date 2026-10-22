@@ -80,6 +80,12 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
    penolakan di luar radius 100 m, penolakan manipulasi jam perangkat, pengajuan & review
    izin, dashboard, export Excel/PDF, audit log, login throttle) berjalan sesuai harapan.
 
+6. **Keamanan integrasi frontend–backend**: cookie JWT `httpOnly` + `OriginGuard` yang menolak
+   request tulis (POST/PATCH/PUT/DELETE) dari origin di luar `CORS_ORIGIN`, untuk menutup risiko
+   CSRF saat produksi memakai `SameSite=None`. Konfigurasi `COOKIE_SAME_SITE=none` wajib
+   berpasangan dengan `COOKIE_SECURE=true`, dan build frontend production gagal bila
+   `NEXT_PUBLIC_API_URL` kosong atau bukan URL absolut.
+
 ### Asumsi yang perlu dikonfirmasi
 - Koordinat kantor BPS Kabupaten Padang Lawas pada seed masih perkiraan (Sibuhuan).
 - Jam masuk 07:30 dan tanpa toleransi keterlambatan (diubah 22 Oktober 2026; sebelumnya 08:00 + 15 menit).
