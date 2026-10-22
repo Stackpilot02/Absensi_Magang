@@ -1,0 +1,152 @@
+// Skema database Sistem Absensi Pegawai Magang BPS Kabupaten Padang Lawas
+// Mengacu pada Schema.md (users, attendance, office_location) + rekomendasi PRD
+// (audit log, data peserta magang, pengajuan izin/sakit).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PEMBIMBING
+  MAGANG
+  KEPALA_BPS
+}
+
+enum AttendanceStatus {
+  HADIR
+  TERLAMBAT
+  IZIN
+  SAKIT
+  ALPHA
+  LIBUR
+}
+
+enum LeaveType {
+  IZIN
+  SAKIT
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String    @id @default(uuid())
+  name           String
+  email          String    @unique
+  password       String
+  role           Role      @default(MAGANG)
+  nim            String?   @unique
+  asalKampus     String?
+  prodi          String?
+  noHp           String?
+  periodeMulai   DateTime? @db.Date
+  periodeSelesai DateTime? @db.Date
+  mentorId       String?
+  mentor         User?     @relation("Mentorship", fields: [mentorId], references: [id], onDelete: SetNull)
+  mentees        User[]    @relation("Mentorship")
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  attendances   Attendance[]
+  leaveRequests LeaveRequest[] @relation("Pengaju")
+  reviews       LeaveRequest[] @relation("Peninjau")
+  auditLogs     AuditLog[]
+
+  @@index([role])
+  @@index([mentorId])
+  @@map("users")
+}
+
+model Attendance {
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime         @db.Date
+  checkIn          DateTime?
+  checkOut         DateTime?
+  latitudeIn       Float?
+  longitudeIn      Float?
+  latitudeOut      Float?
+  longitudeOut     Float?
+  distanceIn       Float?
+  distanceOut      Float?
+  clockSkewIn      Int?
+  clockSkewOut     Int?
+  status           AttendanceStatus @default(HADIR)
+  note             String?
+  officeLocationId String?
+  officeLocation   OfficeLocation?  @relation(fields: [officeLocationId], references: [id], onDelete: SetNull)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([userId, date])
+  @@index([date])
+  @@index([status])
+  @@map("attendance")
+}
+
+model OfficeLocation {
+  id        String   @id @default(uuid())
+  name      String
+  latitude  Float
+  longitude Float
+  radius    Int      @default(100)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendances Attendance[]
+
+  @@map("office_location")
+}
+
+model LeaveRequest {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation("Pengaju", fields: [userId], references: [id], onDelete: Cascade)
+  type        LeaveType
+  startDate   DateTime    @db.Date
+  endDate     DateTime    @db.Date
+  reason      String
+  status      LeaveStatus @default(PENDING)
+  reviewerId  String?
+  reviewer    User?       @relation("Peninjau", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt  DateTime?
+  reviewNote  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId, startDate])
+  @@index([status])
+  @@map("leave_request")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String?
+  entityId  String?
+  method    String
+  path      String
+  ip        String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+  @@map("audit_log")
+}
