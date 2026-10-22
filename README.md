@@ -41,7 +41,10 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
 
 - Node.js >= 20.9
 - npm >= 10
-- PostgreSQL 16 (lokal via Docker, atau Supabase untuk staging/production)
+- PostgreSQL 16 — **Neon (serverless, direkomendasikan)** atau PostgreSQL lokal via Docker
+
+> Database serverless (Neon) memakai dua connection string: **pooled** untuk runtime
+> (`DATABASE_URL`) dan **direct** untuk migrasi/seed (`DIRECT_URL`). Detail di bawah.
 
 ## Menjalankan di Lokal
 
@@ -58,17 +61,45 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
    cp apps/web/.env.example apps/web/.env.local
    ```
 
-   Wajib mengganti `JWT_SECRET` dengan string acak minimal 32 karakter.
+   Isi `DATABASE_URL`, `DIRECT_URL`, dan ganti `JWT_SECRET` dengan string acak
+   minimal 32 karakter.
 
-3. **Jalankan PostgreSQL**
+3. **Siapkan database**
+
+   **Opsi A — Neon (serverless, tanpa server sendiri):**
+
+   1. Buat project di [neon.tech](https://neon.tech) (region terdekat: Singapore).
+   2. Buka **Connect** di dashboard Neon, salin **dua** connection string:
+      - `Pooled connection` (host mengandung `-pooler`) → `DATABASE_URL`
+      - `Direct connection` (host tanpa `-pooler`) → `DIRECT_URL`
+   3. Tambahkan parameter berikut pada `DATABASE_URL`:
+      `?sslmode=require&pgbouncer=true&connect_timeout=15&connection_limit=5`
+   4. `DIRECT_URL` cukup `?sslmode=require&connect_timeout=15`.
+   5. Jalankan migrasi & seed:
+
+      ```bash
+      npm run db:migrate
+      npm run db:seed
+      ```
+
+   **Opsi B — PostgreSQL lokal:**
 
    ```bash
    docker compose up -d
    ```
 
-   Port default `5433` agar tidak bentrok dengan PostgreSQL lain di mesin lokal.
+   Lalu set kedua variabel ke database lokal (port default `5433`):
 
-4. **Migrasi & data dummy**
+   ```env
+   DATABASE_URL="postgresql://absensi:absensi_local_dev@localhost:5433/absensi_magang?schema=public"
+   DIRECT_URL="postgresql://absensi:absensi_local_dev@localhost:5433/absensi_magang?schema=public"
+   ```
+
+   > Mengapa dua URL? Neon memakai PgBouncer dalam *transaction mode*. Runtime butuh
+   > koneksi pooled agar jumlah koneksi efisien, sedangkan `prisma migrate`/`db seed`
+   > butuh koneksi langsung karena menjalankan DDL (tidak didukung PgBouncer).
+
+4. **Jalankan migrasi & data dummy** (bila belum)
 
    ```bash
    npm run db:generate
@@ -132,6 +163,7 @@ Semua endpoint berada di prefix `/api`.
 | GET | `/dashboard/summary`, `/dashboard/monthly` | sesuai role |
 | GET | `/audit-logs` | admin |
 | GET | `/health` | publik |
+| GET | `/health/db` | publik (ping database / wake-up Neon) |
 
 ## Testing & Quality Gate
 
@@ -150,15 +182,26 @@ autentikasi & hashing password, serta pembuatan berkas Excel/PDF.
 | Komponen | Platform | Catatan |
 | --- | --- | --- |
 | Frontend | Vercel | Set `NEXT_PUBLIC_API_URL` ke URL API publik |
-| Backend | Railway | Set `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `COOKIE_SECURE=true`, `NODE_ENV=production` |
-| Database | Supabase | Gunakan connection string pooler untuk runtime, direct untuk migrasi |
+| Backend | Railway / Render | Set `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `COOKIE_SECURE=true`, `COOKIE_SAME_SITE=none`, `NODE_ENV=production` |
+| Database | Neon | Pooled URL (`-pooler`) untuk runtime, direct URL untuk migrasi |
 
 Langkah deploy backend:
 
 ```bash
+# memakai DIRECT_URL secara otomatis
 npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+npx prisma db seed --schema apps/api/prisma/schema.prisma   # opsional, hanya data awal
 npm run build --workspace @absensi/api
 ```
+
+Catatan Neon untuk production:
+
+- Gunakan **pooled connection** di `DATABASE_URL` dan **direct connection** di `DIRECT_URL`.
+- Set `connection_limit=5` pada `DATABASE_URL` agar jumlah koneksi per instance terkendali
+  (free tier Neon punya kuota koneksi terbatas).
+- Neon meng-*suspend* compute setelah idle. Backend sudah melakukan retry koneksi
+  otomatis (3 percobaan) dan menyediakan `GET /api/health/db` untuk uptime monitor.
+- Aktifkan **History retention / backup** pada project Neon untuk kebutuhan audit.
 
 Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
 `COOKIE_SAME_SITE=none` dan `COOKIE_SECURE=true` agar cookie JWT terkirim.

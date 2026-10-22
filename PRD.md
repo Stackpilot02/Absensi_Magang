@@ -65,6 +65,14 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
 3. **Status `LIBUR`** dihitung otomatis untuk Sabtu/Minggu; `ALPHA` dihitung saat rekap
    bila tidak ada absensi dan tidak ada izin/sakit yang disetujui.
 4. **Token** disimpan pada cookie `httpOnly` (bukan localStorage) untuk mengurangi risiko XSS.
+5. **Database serverless (Neon)** dipilih sebagai opsi produksi karena tidak perlu mengelola
+   server sendiri, mendukung branching untuk staging, dan kompatibel dengan Prisma.
+   Implementasi memakai dua koneksi:
+   - `DATABASE_URL` → pooled (`-pooler`, `pgbouncer=true`, `connection_limit=5`) untuk runtime.
+   - `DIRECT_URL` → direct (tanpa `-pooler`) untuk `prisma migrate` dan seed.
+   Konsekuensi yang ditangani: compute Neon bisa suspend saat idle, sehingga service
+   Prisma melakukan retry koneksi (3 percobaan) dan tersedia endpoint `GET /api/health/db`
+   untuk monitoring sekaligus memanaskan koneksi.
 
 ### Asumsi yang perlu dikonfirmasi
 - Koordinat kantor BPS Kabupaten Padang Lawas pada seed masih perkiraan (Sibuhuan).
