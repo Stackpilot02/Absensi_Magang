@@ -214,74 +214,8 @@ export class AttendanceService {
     return { message: 'Check-out berhasil. Terima kasih atas kerja hari ini!', data: attendance };
   }
 
-  /**
-   * Membuat kehadiran sekali klik: jam datang dan jam pulang diisi waktu server
-   * saat tombol ditekan. Aturan geofence, jam perangkat, hari libur, periode
-   * magang, dan satu absensi per hari tetap berlaku sama seperti check-in biasa.
-   */
-  async createInstant(
-    requester: AuthUser,
-    dto: CheckInDto,
-  ): Promise<{ message: string; data: Attendance }> {
-    const now = this.now();
-
-    if (isWeekend(now)) {
-      throw new BadRequestException('Hari ini hari libur kantor. Absensi tidak diperlukan.');
-    }
-
-    const skewSeconds = this.assertClockTrusted(dto.deviceTime, now);
-    await this.assertPeriodeMagang(requester.id, now);
-
-    const today = toDateOnly(now);
-    const existing = await this.prisma.attendance.findUnique({
-      where: { userId_date: { userId: requester.id, date: today } },
-    });
-
-    if (existing) {
-      throw new ConflictException('Kehadiran hari ini sudah tercatat.');
-    }
-
-    const { office, distance } = await this.assertWithinOfficeRadius(dto);
-    const status = computeAttendanceStatus(now, this.schedule);
-
-    const attendance = await this.prisma.attendance.create({
-      data: {
-        userId: requester.id,
-        date: today,
-        checkIn: now,
-        checkOut: now,
-        latitudeIn: dto.latitude,
-        longitudeIn: dto.longitude,
-        latitudeOut: dto.latitude,
-        longitudeOut: dto.longitude,
-        distanceIn: distance,
-        distanceOut: distance,
-        clockSkewIn: skewSeconds,
-        clockSkewOut: skewSeconds,
-        status,
-        note: dto.note ?? 'Kehadiran dibuat sekali klik (datang & pulang).',
-        officeLocationId: office.id,
-      },
-    });
-
-    const jam = new Intl.DateTimeFormat('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    }).format(now);
-
-    this.logger.log(
-      `Kehadiran sekali klik dibuat untuk user ${requester.id} (${status}, ${jam} WIB, ${distance} m)`,
-    );
-
-    return {
-      message: `Kehadiran berhasil dibuat. Jam datang dan pulang tercatat pukul ${jam} WIB.`,
-      data: attendance,
-    };
-  }
-
-  async findToday(requester: AuthUser): Promise<AttendanceWithMeta | null> {    const today = toDateOnly(this.now());
+  async findToday(requester: AuthUser): Promise<AttendanceWithMeta | null> {
+    const today = toDateOnly(this.now());
     const attendance = await this.prisma.attendance.findUnique({
       where: { userId_date: { userId: requester.id, date: today } },
     });

@@ -154,63 +154,8 @@ describe('AttendanceService', () => {
     expect(prisma.attendance.update).toHaveBeenCalledTimes(1);
   });
 
-  describe('kehadiran sekali klik', () => {
-    it('mencatat jam datang dan pulang dengan waktu yang sama', async () => {
-      const result = await service.createInstant(USER, { ...INSIDE });
-
-      expect(prisma.attendance.create).toHaveBeenCalledTimes(1);
-      expect(result.data.checkIn).toEqual(WEDNESDAY_MORNING);
-      expect(result.data.checkOut).toEqual(WEDNESDAY_MORNING);
-      expect(result.data.status).toBe('HADIR');
-      expect(result.data.distanceOut).toBe(0);
-      expect(result.data.note).toContain('sekali klik');
-      expect(result.message).toContain('pukul');
-    });
-
-    it('memakai catatan kustom bila dikirim pengguna', async () => {
-      const result = await service.createInstant(USER, { ...INSIDE, note: 'Input susulan.' });
-
-      expect(result.data.note).toBe('Input susulan.');
-    });
-
-    it('menolak bila kehadiran hari ini sudah ada', async () => {
-      prisma.attendance.findUnique.mockResolvedValue({
-        id: 'att-1',
-        checkIn: WEDNESDAY_MORNING,
-        checkOut: null,
-      });
-
-      await expect(service.createInstant(USER, { ...INSIDE })).rejects.toBeInstanceOf(
-        ConflictException,
-      );
-      expect(prisma.attendance.create).not.toHaveBeenCalled();
-    });
-
-    it('menolak di luar radius kantor', async () => {
-      await expect(service.createInstant(USER, { ...OUTSIDE })).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
-      expect(prisma.attendance.create).not.toHaveBeenCalled();
-    });
-
-    it('menolak pada akhir pekan', async () => {
-      jest
-        .spyOn(service as unknown as { now: () => Date }, 'now')
-        .mockReturnValue(new Date('2026-10-24T01:00:00.000Z'));
-
-      await expect(service.createInstant(USER, { ...INSIDE })).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
-    });
-
-    it('menolak bila jam perangkat tidak sinkron', async () => {
-      await expect(
-        service.createInstant(USER, { ...INSIDE, deviceTime: '2026-10-21T00:00:00.000Z' }),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-  });
-
-  it('menolak check-in di luar periode magang', async () => {    prisma.user.findUnique.mockResolvedValue({
+  it('menolak check-in di luar periode magang', async () => {
+    prisma.user.findUnique.mockResolvedValue({
       role: Role.MAGANG,
       periodeMulai: null,
       periodeSelesai: new Date('2026-09-30T00:00:00.000Z'),
