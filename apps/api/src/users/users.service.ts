@@ -33,6 +33,7 @@ export class UsersService {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: 'insensitive' } },
         { nim: { contains: search, mode: 'insensitive' } },
         { asalKampus: { contains: search, mode: 'insensitive' } },
       ];
@@ -77,9 +78,16 @@ export class UsersService {
 
   async create(dto: CreateUserDto): Promise<PublicUser> {
     const email = dto.email.toLowerCase();
+    const username = this.normalizeUsername(dto.username);
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
       throw new ConflictException('Email sudah terdaftar.');
+    }
+    if (username) {
+      const usernameExists = await this.prisma.user.findUnique({ where: { username } });
+      if (usernameExists) {
+        throw new ConflictException('Username sudah digunakan.');
+      }
     }
     if (dto.nim) {
       const nimExists = await this.prisma.user.findUnique({ where: { nim: dto.nim } });
@@ -93,6 +101,7 @@ export class UsersService {
       data: {
         name: dto.name,
         email,
+        username,
         password: await bcrypt.hash(dto.password, 12),
         role: dto.role,
         nim: dto.nim,
@@ -130,6 +139,14 @@ export class UsersService {
       }
     }
 
+    const username = this.normalizeUsername(dto.username);
+    if (username && username !== existing.username) {
+      const usernameTaken = await this.prisma.user.findUnique({ where: { username } });
+      if (usernameTaken) {
+        throw new ConflictException('Username sudah digunakan.');
+      }
+    }
+
     this.assertPeriodeValid(
       dto.periodeMulai ?? existing.periodeMulai?.toISOString(),
       dto.periodeSelesai ?? existing.periodeSelesai?.toISOString(),
@@ -140,6 +157,7 @@ export class UsersService {
       data: {
         name: dto.name,
         email: dto.email?.toLowerCase(),
+        username,
         role: dto.role,
         nim: dto.nim,
         asalKampus: dto.asalKampus,
@@ -169,6 +187,11 @@ export class UsersService {
     }
     await this.prisma.user.update({ where: { id }, data: { isActive: false } });
     return { message: 'Akun berhasil dinonaktifkan.' };
+  }
+
+  private normalizeUsername(value?: string): string | undefined {
+    const trimmed = value?.trim().toLowerCase();
+    return trimmed ? trimmed : undefined;
   }
 
   private assertPeriodeValid(mulai?: string, selesai?: string): void {

@@ -30,12 +30,16 @@ const USER = {
 
 const CONFIG_VALUES: Record<string, unknown> = {
   'attendance.workStartTime': '08:00',
+  'attendance.workEndTime': '16:00',
   'attendance.lateToleranceMinutes': 15,
   'attendance.maxClockSkewSeconds': 300,
 };
 
 // Rabu, 21 Oktober 2026 pukul 08:10 WIB
 const WEDNESDAY_MORNING = new Date('2026-10-21T01:10:00.000Z');
+
+// Rabu, 21 Oktober 2026 pukul 16:30 WIB
+const WEDNESDAY_AFTERNOON = new Date('2026-10-21T09:30:00.000Z');
 
 describe('AttendanceService', () => {
   let service: AttendanceService;
@@ -140,7 +144,24 @@ describe('AttendanceService', () => {
     await expect(service.checkOut(USER, { ...INSIDE })).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('check-out berhasil setelah check-in', async () => {
+  it('menolak check-out sebelum jam pulang 16.00 WIB', async () => {
+    prisma.attendance.findUnique.mockResolvedValue({
+      id: 'att-1',
+      checkIn: WEDNESDAY_MORNING,
+      checkOut: null,
+      note: null,
+    });
+
+    await expect(service.checkOut(USER, { ...INSIDE })).rejects.toThrow(
+      'Absen pulang baru dapat dilakukan mulai pukul 16:00 WIB.',
+    );
+    expect(prisma.attendance.update).not.toHaveBeenCalled();
+  });
+
+  it('check-out berhasil setelah check-in dan lewat jam pulang', async () => {
+    jest
+      .spyOn(service as unknown as { now: () => Date }, 'now')
+      .mockReturnValue(WEDNESDAY_AFTERNOON);
     prisma.attendance.findUnique.mockResolvedValue({
       id: 'att-1',
       checkIn: WEDNESDAY_MORNING,

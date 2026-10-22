@@ -68,9 +68,10 @@ describe('ActivitiesService', () => {
   });
 
   describe('create', () => {
-    it('menyimpan laporan dengan tanggal dan uraian yang sudah dirapikan', async () => {
+    it('menyimpan laporan dengan tanggal, jam, dan uraian yang sudah dirapikan', async () => {
       const result = await service.create(USER, {
         date: '2026-10-21',
+        time: '09:30',
         description: '  Merekap data survei lapangan.  ',
       });
 
@@ -79,6 +80,7 @@ describe('ActivitiesService', () => {
           data: {
             userId: USER.id,
             date: new Date('2026-10-21T00:00:00.000Z'),
+            time: '09:30',
             description: 'Merekap data survei lapangan.',
           },
         }),
@@ -86,16 +88,35 @@ describe('ActivitiesService', () => {
       expect(result.description).toBe('Merekap data survei lapangan.');
     });
 
+    it('menolak format jam yang tidak valid', async () => {
+      await expect(
+        service.create(USER, {
+          date: '2026-10-21',
+          time: '9.30',
+          description: 'Kegiatan pagi.',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.activityReport.create).not.toHaveBeenCalled();
+    });
+
     it('menolak tanggal setelah hari ini', async () => {
       await expect(
-        service.create(USER, { date: '2026-10-22', description: 'Kegiatan besok.' }),
+        service.create(USER, {
+          date: '2026-10-22',
+          time: '08:00',
+          description: 'Kegiatan besok.',
+        }),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.activityReport.create).not.toHaveBeenCalled();
     });
 
     it('menolak uraian yang terlalu pendek setelah dirapikan', async () => {
       await expect(
-        service.create(USER, { date: '2026-10-21', description: '   abc   ' }),
+        service.create(USER, {
+          date: '2026-10-21',
+          time: '08:00',
+          description: '   abc   ',
+        }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
@@ -155,11 +176,12 @@ describe('ActivitiesService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
-    it('memperbarui uraian dan tanggal laporan sendiri', async () => {
+    it('memperbarui uraian, jam, dan tanggal laporan sendiri', async () => {
       prisma.activityReport.findUnique.mockResolvedValue({ id: 'act-1', userId: USER.id });
 
       await service.update('act-1', USER, {
         date: '2026-10-20',
+        time: '14:15',
         description: '  Menyusun rekap baru.  ',
       });
 
@@ -167,6 +189,7 @@ describe('ActivitiesService', () => {
         expect.objectContaining({
           data: {
             date: new Date('2026-10-20T00:00:00.000Z'),
+            time: '14:15',
             description: 'Menyusun rekap baru.',
           },
         }),

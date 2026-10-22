@@ -21,6 +21,13 @@ export class CreateUserDto {
   @MaxLength(150)
   email!: string;
 
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9._-]{3,30}$/, {
+    message: 'Username 3-30 karakter: huruf, angka, titik, garis bawah, atau strip.',
+  })
+  username?: string;
+
   @IsString()
   @MinLength(8, { message: 'Password minimal 8 karakter.' })
   @MaxLength(128)

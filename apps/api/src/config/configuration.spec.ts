@@ -10,6 +10,7 @@ describe('konfigurasi jam kerja', () => {
     'NODE_ENV',
     'JWT_SECRET',
     'WORK_START_TIME',
+    'WORK_END_TIME',
     'LATE_TOLERANCE_MINUTES',
     'COOKIE_SAME_SITE',
     'COOKIE_SECURE',
@@ -32,20 +33,23 @@ describe('konfigurasi jam kerja', () => {
     }
   });
 
-  it('memakai default 07.30 tanpa toleransi', () => {
+  it('memakai default 07.30 masuk dan 16.00 pulang tanpa toleransi', () => {
     const config = configuration();
 
     expect(config.attendance.workStartTime).toBe('07:30');
+    expect(config.attendance.workEndTime).toBe('16:00');
     expect(config.attendance.lateToleranceMinutes).toBe(0);
   });
 
   it('membaca nilai dari environment', () => {
     process.env.WORK_START_TIME = '06:45';
+    process.env.WORK_END_TIME = '15:30';
     process.env.LATE_TOLERANCE_MINUTES = '5';
 
     const config = configuration();
 
     expect(config.attendance.workStartTime).toBe('06:45');
+    expect(config.attendance.workEndTime).toBe('15:30');
     expect(config.attendance.lateToleranceMinutes).toBe(5);
   });
 
@@ -61,6 +65,17 @@ describe('konfigurasi jam kerja', () => {
 
     process.env.WORK_START_TIME = '24:00';
     expect(() => configuration()).toThrow(/WORK_START_TIME/);
+  });
+
+  it('menolak jam pulang yang formatnya salah atau tidak setelah jam masuk', () => {
+    process.env.WORK_END_TIME = '16.00';
+    expect(() => configuration()).toThrow(/WORK_END_TIME/);
+
+    process.env.WORK_END_TIME = '07:30';
+    expect(() => configuration()).toThrow(/WORK_END_TIME/);
+
+    process.env.WORK_END_TIME = '06:00';
+    expect(() => configuration()).toThrow(/WORK_END_TIME/);
   });
 
   it('menolak toleransi negatif atau pecahan', () => {

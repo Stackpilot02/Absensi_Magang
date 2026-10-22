@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AttendanceStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { OfficeLocationsService } from '../office-locations/office-locations.service';
@@ -10,6 +11,7 @@ export interface DashboardSummary {
   scope: 'pegawai' | 'pengelola';
   tanggal: string;
   kantor: { name: string; latitude: number; longitude: number; radius: number } | null;
+  jadwal: { masuk: string; pulang: string };
   hariIni: {
     checkIn: string | null;
     checkOut: string | null;
@@ -42,6 +44,7 @@ export class DashboardService {
     private readonly prisma: PrismaService,
     private readonly officeLocations: OfficeLocationsService,
     private readonly attendance: AttendanceService,
+    private readonly config: ConfigService,
   ) {}
 
   private timeLabel(value: Date | null): string | null {
@@ -57,6 +60,10 @@ export class DashboardService {
   async summary(requester: AuthUser): Promise<DashboardSummary> {
     const now = new Date();
     const today = toDateOnly(now);
+    const jadwal = {
+      masuk: this.config.get<string>('attendance.workStartTime') as string,
+      pulang: this.config.get<string>('attendance.workEndTime') as string,
+    };
 
     let office: { name: string; latitude: number; longitude: number; radius: number } | null = null;
     try {
@@ -115,6 +122,7 @@ export class DashboardService {
         scope: 'pengelola',
         tanggal: dateOnlyToKey(today),
         kantor: office,
+        jadwal,
         hariIni: { checkIn: null, checkOut: null, status: null, statusLabel: null },
         statistik: {
           totalPeserta,
@@ -150,6 +158,7 @@ export class DashboardService {
       scope: 'pegawai',
       tanggal: dateOnlyToKey(today),
       kantor: office,
+      jadwal,
       hariIni: {
         checkIn: this.timeLabel(todayAttendance?.checkIn ?? null),
         checkOut: this.timeLabel(todayAttendance?.checkOut ?? null),

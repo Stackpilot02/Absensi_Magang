@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -11,6 +12,11 @@ export class CreateActivityDto {
   /** Tanggal kegiatan (YYYY-MM-DD), tidak boleh melebihi hari ini. */
   @IsDateString({}, { message: 'Tanggal kegiatan harus berformat ISO 8601.' })
   date!: string;
+
+  /** Jam kegiatan (HH:mm, zona Asia/Jakarta). */
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Jam kegiatan harus berformat HH:mm.' })
+  time!: string;
 
   @IsString()
   @MinLength(5, { message: 'Uraian kegiatan minimal 5 karakter.' })
@@ -22,6 +28,11 @@ export class UpdateActivityDto {
   @IsOptional()
   @IsDateString({}, { message: 'Tanggal kegiatan harus berformat ISO 8601.' })
   date?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Jam kegiatan harus berformat HH:mm.' })
+  time?: string;
 
   @IsOptional()
   @IsString()

@@ -14,6 +14,7 @@ export interface PublicUser {
   id: string;
   name: string;
   email: string;
+  username: string | null;
   role: User['role'];
   nim: string | null;
   asalKampus: string | null;
@@ -38,6 +39,7 @@ export function toPublicUser(user: User): PublicUser {
     id: user.id,
     name: user.name,
     email: user.email,
+    username: user.username,
     role: user.role,
     nim: user.nim,
     asalKampus: user.asalKampus,
@@ -57,13 +59,18 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  /** Verifikasi kredensial; mengembalikan user bila valid. */
-  async validateCredentials(email: string, password: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  /** Verifikasi kredensial (email atau username); mengembalikan user bila valid. */
+  async validateCredentials(identifier: string, password: string): Promise<User> {
+    const normalized = identifier.trim().toLowerCase();
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: normalized }, { username: normalized }],
+      },
+    });
 
-    // Pesan error disamakan agar tidak membocorkan email mana yang terdaftar.
+    // Pesan error disamakan agar tidak membocorkan akun mana yang terdaftar.
     if (!user) {
-      throw new UnauthorizedException('Email atau password salah.');
+      throw new UnauthorizedException('Email/username atau password salah.');
     }
     if (!user.isActive) {
       throw new UnauthorizedException('Akun tidak aktif. Hubungi admin BPS.');
@@ -71,14 +78,14 @@ export class AuthService {
 
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid) {
-      throw new UnauthorizedException('Email atau password salah.');
+      throw new UnauthorizedException('Email/username atau password salah.');
     }
 
     return user;
   }
 
   async login(dto: LoginDto): Promise<{ accessToken: string; user: PublicUser }> {
-    const user = await this.validateCredentials(dto.email, dto.password);
+    const user = await this.validateCredentials(dto.identifier, dto.password);
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,

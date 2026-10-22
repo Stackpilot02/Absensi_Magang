@@ -30,7 +30,7 @@ function buildUser(overrides: Record<string, unknown> = {}) {
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: {
-    user: { findUnique: jest.Mock; update: jest.Mock };
+    user: { findUnique: jest.Mock; findFirst: jest.Mock; update: jest.Mock };
   };
   let jwt: { signAsync: jest.Mock };
 
@@ -38,6 +38,7 @@ describe('AuthService', () => {
     prisma = {
       user: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn().mockResolvedValue({}),
       },
     };
@@ -46,9 +47,9 @@ describe('AuthService', () => {
   });
 
   it('login berhasil mengembalikan token dan profil tanpa password', async () => {
-    prisma.user.findUnique.mockResolvedValue(buildUser());
+    prisma.user.findFirst.mockResolvedValue(buildUser());
 
-    const result = await service.login({ email: 'siti@mahasiswa.ac.id', password: PASSWORD });
+    const result = await service.login({ identifier: 'siti@mahasiswa.ac.id', password: PASSWORD });
 
     expect(result.accessToken).toBe('token-abc');
     expect(result.user).not.toHaveProperty('password');
@@ -59,36 +60,47 @@ describe('AuthService', () => {
   });
 
   it('email dinormalisasi menjadi huruf kecil saat pencarian', async () => {
-    prisma.user.findUnique.mockResolvedValue(buildUser());
+    prisma.user.findFirst.mockResolvedValue(buildUser());
 
-    await service.login({ email: 'SITI@Mahasiswa.ac.id', password: PASSWORD });
+    await service.login({ identifier: 'SITI@Mahasiswa.ac.id', password: PASSWORD });
 
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { email: 'siti@mahasiswa.ac.id' },
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { OR: [{ email: 'siti@mahasiswa.ac.id' }, { username: 'siti@mahasiswa.ac.id' }] },
+    });
+  });
+
+  it('login memakai username juga dapat dilakukan', async () => {
+    prisma.user.findFirst.mockResolvedValue(buildUser({ username: 'siti1221' }));
+
+    const result = await service.login({ identifier: 'Siti1221', password: PASSWORD });
+
+    expect(result.user.username).toBe('siti1221');
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { OR: [{ email: 'siti1221' }, { username: 'siti1221' }] },
     });
   });
 
   it('menolak password yang salah', async () => {
-    prisma.user.findUnique.mockResolvedValue(buildUser());
+    prisma.user.findFirst.mockResolvedValue(buildUser());
 
     await expect(
-      service.login({ email: 'siti@mahasiswa.ac.id', password: 'PasswordSalah1' }),
+      service.login({ identifier: 'siti@mahasiswa.ac.id', password: 'PasswordSalah1' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('menolak email yang tidak terdaftar', async () => {
-    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.login({ email: 'tidakada@mail.id', password: PASSWORD }),
+      service.login({ identifier: 'tidakada@mail.id', password: PASSWORD }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('menolak akun yang tidak aktif', async () => {
-    prisma.user.findUnique.mockResolvedValue(buildUser({ isActive: false }));
+    prisma.user.findFirst.mockResolvedValue(buildUser({ isActive: false }));
 
     await expect(
-      service.login({ email: 'siti@mahasiswa.ac.id', password: PASSWORD }),
+      service.login({ identifier: 'siti@mahasiswa.ac.id', password: PASSWORD }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 

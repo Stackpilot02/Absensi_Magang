@@ -56,6 +56,14 @@ export class ActivitiesService {
     return description;
   }
 
+  private normalizeTime(value: string): string {
+    const time = value.trim();
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      throw new BadRequestException('Jam kegiatan harus berformat HH:mm.');
+    }
+    return time;
+  }
+
   async create(requester: AuthUser, dto: CreateActivityDto): Promise<ActivityWithUser> {
     const date = this.parseDate(dto.date);
     this.assertNotFuture(date);
@@ -64,6 +72,7 @@ export class ActivitiesService {
       data: {
         userId: requester.id,
         date,
+        time: this.normalizeTime(dto.time),
         description: this.normalizeDescription(dto.description),
       },
       include: { user: { select: USER_SELECT } },
@@ -104,7 +113,7 @@ export class ActivitiesService {
     return this.prisma.activityReport.findMany({
       where,
       include: { user: { select: USER_SELECT } },
-      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ date: 'desc' }, { time: 'desc' }, { createdAt: 'desc' }],
       take: 200,
     });
   }
@@ -122,11 +131,14 @@ export class ActivitiesService {
       throw new ForbiddenException('Anda hanya dapat mengubah laporan kegiatan milik sendiri.');
     }
 
-    const data: { date?: Date; description?: string } = {};
+    const data: { date?: Date; time?: string; description?: string } = {};
     if (dto.date !== undefined) {
       const date = this.parseDate(dto.date);
       this.assertNotFuture(date);
       data.date = date;
+    }
+    if (dto.time !== undefined) {
+      data.time = this.normalizeTime(dto.time);
     }
     if (dto.description !== undefined) {
       data.description = this.normalizeDescription(dto.description);

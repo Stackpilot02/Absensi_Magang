@@ -17,6 +17,7 @@ import {
   computeAttendanceStatus,
   evaluateClockSkew,
   isWeekend,
+  parseTimeToMinutes,
   resolveDailyStatus,
   WorkSchedule,
   ATTENDANCE_STATUS_LABEL,
@@ -28,6 +29,7 @@ import {
 } from '../common/geo';
 import {
   dateOnlyToKey,
+  jakartaMinutesOfDay,
   monthRange,
   toDateOnly,
 } from '../common/time';
@@ -195,6 +197,14 @@ export class AttendanceService {
     }
     if (existing.checkOut) {
       throw new ConflictException('Anda sudah melakukan check-out hari ini.');
+    }
+
+    // Absen pulang baru dibuka pada jam pulang kantor agar tidak ada pulang lebih awal.
+    const workEndTime = this.config.get<string>('attendance.workEndTime') as string;
+    if (jakartaMinutesOfDay(now) < parseTimeToMinutes(workEndTime)) {
+      throw new BadRequestException(
+        `Absen pulang baru dapat dilakukan mulai pukul ${workEndTime} WIB.`,
+      );
     }
 
     const { distance } = await this.assertWithinOfficeRadius(dto);

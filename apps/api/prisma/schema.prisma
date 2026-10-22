@@ -46,6 +46,7 @@ model User {
   id             String    @id @default(uuid())
   name           String
   email          String    @unique
+  username       String?   @unique
   password       String
   role           Role      @default(MAGANG)
   nim            String?   @unique
@@ -143,6 +144,7 @@ model ActivityReport {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date        DateTime @db.Date
+  time        String   @default("08:00")
   description String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -19,6 +19,7 @@ export interface AppConfiguration {
   };
   attendance: {
     workStartTime: string;
+    workEndTime: string;
     lateToleranceMinutes: number;
     maxClockSkewSeconds: number;
   };
@@ -28,6 +29,8 @@ const DEFAULT_JWT_EXPIRES_IN = '8h';
 const COOKIE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 /** Jam masuk kantor BPS Kab. Padang Lawas: 07.30 WIB tanpa toleransi. */
 const DEFAULT_WORK_START_TIME = '07:30';
+/** Jam pulang kantor BPS Kab. Padang Lawas: 16.00 WIB. */
+const DEFAULT_WORK_END_TIME = '16:00';
 const DEFAULT_LATE_TOLERANCE_MINUTES = 0;
 const MAX_LATE_TOLERANCE_MINUTES = 180;
 
@@ -45,6 +48,20 @@ function readWorkStartTime(value: string | undefined): string {
     );
   }
   return workStartTime;
+}
+
+/** Validasi jam pulang; harus setelah jam masuk. */
+function readWorkEndTime(value: string | undefined, workStartTime: string): string {
+  const workEndTime = value ?? DEFAULT_WORK_END_TIME;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(workEndTime)) {
+    throw new Error(
+      `WORK_END_TIME tidak valid ("${workEndTime}"). Gunakan format HH:mm, contoh 16:00.`,
+    );
+  }
+  if (workEndTime <= workStartTime) {
+    throw new Error('WORK_END_TIME harus lebih lambat daripada WORK_START_TIME.');
+  }
+  return workEndTime;
 }
 
 /** Toleransi 0 berarti check-in lewat 1 menit pun sudah TERLAMBAT. */
@@ -102,6 +119,7 @@ export const configuration = (): AppConfiguration => {
 
   const cookieSecure = readBoolean(process.env.COOKIE_SECURE, nodeEnv === 'production');
   const cookieSameSite = readSameSite(process.env.COOKIE_SAME_SITE);
+  const workStartTime = readWorkStartTime(process.env.WORK_START_TIME);
 
   if (cookieSameSite === 'none' && !cookieSecure) {
     throw new Error(
@@ -128,7 +146,8 @@ export const configuration = (): AppConfiguration => {
       maxAgeMs: COOKIE_MAX_AGE_MS,
     },
     attendance: {
-      workStartTime: readWorkStartTime(process.env.WORK_START_TIME),
+      workStartTime,
+      workEndTime: readWorkEndTime(process.env.WORK_END_TIME, workStartTime),
       lateToleranceMinutes: readLateTolerance(process.env.LATE_TOLERANCE_MINUTES),
       maxClockSkewSeconds: readNumber(process.env.MAX_CLOCK_SKEW_SECONDS, 300),
     },

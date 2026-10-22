@@ -1,9 +1,12 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class LoginDto {
-  @IsEmail({}, { message: 'Format email tidak valid.' })
+  /** Email atau username akun. */
+  @IsString()
+  @IsNotEmpty({ message: 'Email atau username wajib diisi.' })
+  @MinLength(3, { message: 'Email atau username minimal 3 karakter.' })
   @MaxLength(150)
-  email!: string;
+  identifier!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Password wajib diisi.' })
