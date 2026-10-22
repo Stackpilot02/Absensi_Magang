@@ -3,7 +3,9 @@
  * Token JWT disimpan pada cookie httpOnly yang di-set backend,
  * sehingga setiap request wajib menyertakan credential.
  */
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api')
+  .trim()
+  .replace(/\/+$/, '');
 
 export class ApiError extends Error {
   readonly status: number;

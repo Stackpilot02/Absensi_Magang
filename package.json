@@ -12,7 +12,8 @@
     "dev:web": "npm run dev --workspace @absensi/web",
     "build": "npm run build --workspace @absensi/api && npm run build --workspace @absensi/web",
     "test": "npm run test --workspace @absensi/api",
-    "lint": "npm run lint --workspace @absensi/api && npm run lint --workspace @absensi/web",
+    "lint": "npm run lint --workspace @absensi/api && npm run lint --workspace @absensi/web && npm run typecheck:functions",
+    "typecheck:functions": "tsc -p functions/tsconfig.json",
     "db:generate": "npm run prisma:generate --workspace @absensi/api",
     "db:migrate": "npm run prisma:migrate --workspace @absensi/api",
     "db:seed": "npm run seed --workspace @absensi/api"

@@ -1,0 +1,14 @@
+# Header keamanan untuk seluruh aset statis Cloudflare Pages.
+# Header ini tidak berlaku untuk response Pages Functions (/api/*);
+# header tersebut diatur langsung di functions/api/[[path]].ts.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(self), camera=(), microphone=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Robots-Tag: noindex, nofollow
+
+# Berkas di /_next/static memiliki hash pada namanya, aman di-cache lama.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

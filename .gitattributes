@@ -1,0 +1,6 @@
+# Script deployment harus memakai LF agar dapat dijalankan di Linux.
+*.sh text eol=lf
+*.service text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+apps/web/public/_headers text eol=lf
