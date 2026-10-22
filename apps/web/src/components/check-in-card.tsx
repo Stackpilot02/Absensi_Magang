@@ -15,7 +15,7 @@ import {
 import { api, ApiError } from '@/lib/api';
 import { getCurrentPosition, type BrowserPosition } from '@/lib/geolocation';
 import { haversineDistanceMeters } from '@/lib/geo';
-import { cn, formatJam, formatJarak } from '@/lib/utils';
+import { cn, formatJarak } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type { DashboardSummary } from '@/lib/types';
@@ -134,9 +134,9 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
       <div className="grid gap-5 p-5 md:grid-cols-[1.1fr_1fr]">
         <div className="space-y-3">
           <div className="flex items-center gap-4">
-            <TimeBlock label="Masuk" value={formatJam(hariIni.checkIn)} tone="success" />
+            <TimeBlock label="Masuk" value={(hariIni.checkIn ?? '--:--')} tone="success" />
             <div className="h-8 w-px bg-line" />
-            <TimeBlock label="Keluar" value={formatJam(hariIni.checkOut)} tone="muted" />
+            <TimeBlock label="Keluar" value={(hariIni.checkOut ?? '--:--')} tone="muted" />
           </div>
 
           <div className="rounded-xl border border-line bg-surface p-3">
@@ -239,7 +239,7 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
               <CheckCircle2 className="size-7 text-emerald-600" />
               <p className="text-[13px] font-semibold text-ink">Absensi hari ini lengkap</p>
               <p className="text-[11.5px] text-ink-soft">
-                Masuk {formatJam(hariIni.checkIn)} · Keluar {formatJam(hariIni.checkOut)}
+                Masuk {(hariIni.checkIn ?? '--:--')} · Keluar {(hariIni.checkOut ?? '--:--')}
               </p>
             </div>
           )}
