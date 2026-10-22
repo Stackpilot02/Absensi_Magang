@@ -98,6 +98,16 @@ export interface LeaveRequest {
   user?: { id: string; name: string; nim: string | null };
 }
 
+export interface ActivityReport {
+  id: string;
+  userId: string;
+  date: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: Pick<User, 'id' | 'name' | 'nim' | 'role'>;
+}
+
 export interface Paginated<T> {
   data: T[];
   meta: { total: number; page: number; limit: number; totalPages: number };

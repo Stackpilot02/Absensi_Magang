@@ -2,13 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  CheckCheck,
   CheckCircle2,
   Clock3,
+  Fingerprint,
   Loader2,
   LocateFixed,
-  LogIn,
-  LogOut,
   MapPinned,
   RefreshCw,
   TriangleAlert,
@@ -26,16 +24,24 @@ interface CheckInCardProps {
   onChanged: () => void;
 }
 
+type PresensiKind = 'in' | 'out';
+
+interface PresensiResult {
+  kind: PresensiKind;
+  time: string;
+  message: string;
+}
+
 export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
   const { kantor, hariIni } = summary;
 
   const [position, setPosition] = useState<BrowserPosition | null>(null);
   const [locating, setLocating] = useState(false);
-  const [submitting, setSubmitting] = useState<'in' | 'out' | 'instant' | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [submitting, setSubmitting] = useState<PresensiKind | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
-    null,
-  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [result, setResult] = useState<PresensiResult | null>(null);
   const [clock, setClock] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,62 +88,49 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
   const needCheckIn = !hariIni.checkIn;
   const needCheckOut = Boolean(hariIni.checkIn) && !hariIni.checkOut;
   const finished = Boolean(hariIni.checkIn && hariIni.checkOut);
+  const mode: PresensiKind = needCheckIn ? 'in' : 'out';
 
-  async function submitAttendance(kind: 'in' | 'out' | 'instant'): Promise<void> {
+  async function openPanel(): Promise<void> {
+    setSubmitError(null);
+    setPanelOpen(true);
+    await locate();
+  }
+
+  async function submitPresensi(): Promise<void> {
     if (!position) {
       setGeoError('Lokasi belum terdeteksi. Tekan "Perbarui lokasi" lalu coba lagi.');
       return;
     }
 
+    const kind: PresensiKind = needCheckIn ? 'in' : 'out';
     setSubmitting(kind);
-    setFeedback(null);
-
-    const endpoint =
-      kind === 'in'
-        ? '/attendance/check-in'
-        : kind === 'out'
-          ? '/attendance/check-out'
-          : '/attendance/instant';
+    setSubmitError(null);
 
     try {
-      const result = await api.post<{ message: string }>(endpoint, {
+      const response = await api.post<{
+        message: string;
+        data: { checkIn: string | null; checkOut: string | null };
+      }>(kind === 'in' ? '/attendance/check-in' : '/attendance/check-out', {
         latitude: position.latitude,
         longitude: position.longitude,
         deviceTime: position.deviceTime,
       });
-      setFeedback({ type: 'success', message: result.message });
+
+      const iso = kind === 'in' ? response.data.checkIn : response.data.checkOut;
+      setResult({
+        kind,
+        time: formatJam(iso),
+        message: response.message,
+      });
+      setPanelOpen(false);
       onChanged();
     } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : 'Absensi gagal diproses. Coba lagi.';
-      setFeedback({ type: 'error', message });
+      setSubmitError(
+        error instanceof ApiError ? error.message : 'Presensi gagal diproses. Coba lagi.',
+      );
     } finally {
       setSubmitting(null);
     }
-  }
-
-  /** Satu klik untuk mencatat jam datang dan pulang sekaligus (waktu server). */
-  async function submitInstant(): Promise<void> {
-    if (!position) {
-      setGeoError('Lokasi belum terdeteksi. Tekan "Perbarui lokasi" lalu coba lagi.');
-      return;
-    }
-
-    const jam = new Intl.DateTimeFormat('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    }).format(new Date());
-
-    const confirmed = window.confirm(
-      `Buat kehadiran untuk hari ini?\n\n` +
-        `Jam datang dan jam pulang akan tercatat pukul ${jam} WIB (waktu sekarang). ` +
-        `Setelah tersimpan, kehadiran hari ini tidak dapat dibuat ulang.`,
-    );
-    if (!confirmed) return;
-
-    await submitAttendance('instant');
   }
 
   return (
@@ -147,10 +140,10 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
           <p className="label-caps">Absensi hari ini</p>
           <p className="mt-1 text-[15px] font-semibold text-ink">
             {finished
-              ? 'Absensi selesai — terima kasih!'
+              ? 'Absensi hari ini selesai — terima kasih!'
               : needCheckOut
-                ? 'Jangan lupa check-out sebelum pulang'
-                : 'Mulai hari dengan check-in'}
+                ? 'Jam masuk sudah tercatat — saatnya absen pulang'
+                : 'Belum absen masuk hari ini'}
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5">
@@ -214,9 +207,7 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
                 <span
                   className={cn(
                     'rounded-full px-2 py-0.5 text-[10.5px] font-semibold',
-                    insideRadius
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-red-50 text-red-700',
+                    insideRadius ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
                   )}
                 >
                   {insideRadius ? 'Dalam radius' : 'Di luar radius'}
@@ -226,62 +217,136 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
           </div>
 
           {geoError && <Alert variant="error">{geoError}</Alert>}
-          {feedback && <Alert variant={feedback.type}>{feedback.message}</Alert>}
+          {submitError && <Alert variant="error">{submitError}</Alert>}
+
+          {result && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                Jam {result.kind === 'in' ? 'masuk' : 'pulang'} tercatat
+              </p>
+              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-emerald-800">
+                {result.time}
+                <span className="ml-1 text-[11px] font-semibold text-emerald-700">WIB</span>
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-emerald-700">{result.message}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col justify-center gap-2.5 rounded-xl border border-dashed border-line bg-surface/60 p-4">
-          {needCheckIn && (
+          {!finished && !panelOpen && (
             <>
               <Button
                 size="lg"
-                disabled={!insideRadius || submitting !== null || locating}
-                onClick={() => void submitInstant()}
+                disabled={locating || submitting !== null}
+                onClick={() => void openPanel()}
                 className="w-full"
               >
-                {submitting === 'instant' ? (
+                {submitting ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <CheckCheck className="size-4" />
+                  <Fingerprint className="size-4" />
                 )}
                 Buat Kehadiran
               </Button>
-
-              <Button
-                size="lg"
-                variant="outline"
-                disabled={!insideRadius || submitting !== null || locating}
-                onClick={() => void submitAttendance('in')}
-                className="w-full"
-              >
-                {submitting === 'in' ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <LogIn className="size-4" />
-                )}
-                Check-in saja
-              </Button>
-
               <p className="text-center text-[10.5px] leading-relaxed text-slate-400">
-                Buat Kehadiran mencatat jam datang &amp; pulang sekaligus dengan waktu sekarang.
+                {needCheckIn
+                  ? 'Mencatat jam absen masuk setelah lokasi Anda sesuai.'
+                  : 'Mencatat jam absen pulang setelah lokasi Anda sesuai.'}
               </p>
             </>
           )}
 
-          {needCheckOut && (
-            <Button
-              size="lg"
-              variant="outline"
-              disabled={!insideRadius || submitting !== null || locating}
-              onClick={() => void submitAttendance('out')}
-              className="w-full"
-            >
-              {submitting === 'out' ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <LogOut className="size-4" />
-              )}
-              Check-out
-            </Button>
+          {!finished && panelOpen && (
+            <div className="space-y-3">
+              <div>
+                <p className="label-caps">Kesesuaian lokasi absen</p>
+                <p className="mt-0.5 text-[13px] font-semibold text-ink">
+                  {mode === 'in' ? 'Absen masuk' : 'Absen pulang'}
+                </p>
+              </div>
+
+              <div
+                className={cn(
+                  'rounded-lg border p-3',
+                  locating
+                    ? 'border-line bg-white'
+                    : insideRadius
+                      ? 'border-emerald-200 bg-emerald-50'
+                      : 'border-amber-200 bg-amber-50',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  {locating ? (
+                    <Loader2 className="size-4 animate-spin text-brand-600" />
+                  ) : insideRadius ? (
+                    <CheckCircle2 className="size-4 text-emerald-600" />
+                  ) : (
+                    <TriangleAlert className="size-4 text-amber-600" />
+                  )}
+                  <p
+                    className={cn(
+                      'text-[12.5px] font-semibold',
+                      locating
+                        ? 'text-ink'
+                        : insideRadius
+                          ? 'text-emerald-800'
+                          : 'text-amber-800',
+                    )}
+                  >
+                    {locating
+                      ? 'Memeriksa lokasi…'
+                      : insideRadius
+                        ? 'Lokasi sesuai'
+                        : position
+                          ? 'Lokasi belum sesuai'
+                          : 'Lokasi belum terdeteksi'}
+                  </p>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
+                  {position && kantor
+                    ? `Jarak ${formatJarak(distance)} dari ${kantor.name} · radius absensi ${kantor.radius} m.`
+                    : 'Aktifkan GPS perangkat, lalu tekan Perbarui lokasi.'}
+                </p>
+                {position?.accuracy ? (
+                  <p className="mt-0.5 text-[10.5px] text-ink-soft">
+                    Akurasi perangkat ±{Math.round(position.accuracy)} m
+                  </p>
+                ) : null}
+              </div>
+
+              <Button
+                size="lg"
+                disabled={!insideRadius || submitting !== null || locating}
+                onClick={() => void submitPresensi()}
+                className="w-full"
+              >
+                {submitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Fingerprint className="size-4" />
+                )}
+                Presensi
+              </Button>
+
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => void locate()}
+                  disabled={locating}
+                  className="text-[11px] font-medium text-brand-700 hover:underline disabled:opacity-60"
+                >
+                  Perbarui lokasi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPanelOpen(false)}
+                  className="text-[11px] font-medium text-ink-soft hover:text-ink"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
           )}
 
           {finished && (
@@ -294,7 +359,7 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
             </div>
           )}
 
-          {!insideRadius && position && (
+          {!insideRadius && position && !panelOpen && !finished && (
             <p className="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-amber-700">
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
               Anda berada di luar radius kantor. Mendekatlah ke lokasi kantor untuk melakukan
@@ -303,12 +368,24 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
           )}
 
           <p className="text-center text-[10.5px] leading-relaxed text-slate-400">
-            Lokasi &amp; waktu perangkat diverifikasi oleh server saat absensi dikirim.
+            Lokasi &amp; waktu perangkat diverifikasi oleh server saat presensi dikirim.
           </p>
         </div>
       </div>
     </div>
   );
+}
+
+function formatJam(value: string | null): string {
+  if (!value) return '--:--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
 }
 
 function TimeBlock({
