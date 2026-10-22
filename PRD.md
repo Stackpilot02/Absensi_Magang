@@ -45,7 +45,7 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
 | Area | Status | Keterangan |
 | --- | --- | --- |
 | Login + JWT | Selesai | Cookie `httpOnly`, rate limit login, ganti password |
-| Dashboard Pegawai | Selesai | Tombol rekap presensi, buat kehadiran (cek lokasi → presensi), lapor kegiatan, statistik bulanan, tren 7 hari |
+| Dashboard Pegawai | Selesai | Kartu absensi bergaya aplikasi mobile (header biru, jam datang/pulang, 3 tile) + statistik bulanan & tren 7 hari |
 | Dashboard Admin/Pembimbing/Kepala | Selesai | Statistik peserta, rekap harian, aktivitas terbaru |
 | Riwayat | Selesai | Filter tanggal, status, pagination |
 | Data Mahasiswa | Selesai | CRUD peserta (NIM, kampus, prodi, HP, periode, pembimbing) |
@@ -99,6 +99,10 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
 - **Lapor Kegiatan**: pegawai magang menulis laporan harian (tanggal + uraian, maksimal
   1000 karakter, tidak boleh tanggal yang akan datang). Pembimbing melihat laporan mahasiswa
   bimbingannya; admin/kepala BPS melihat seluruh laporan dan dapat memfilter rentang tanggal.
+- **Tampilan kartu absensi** (22 Oktober 2026): header biru bermotif, avatar + nama + tombol
+  keluar, tanggal berjalan dengan badge **WFO**, kartu **Jam Datang / Jam Pulang**, dan tiga
+  tile aksi: **Presensi Bulanan** (ke halaman Riwayat), **Buat Kehadiran** (panel kesesuaian
+  lokasi → Presensi), serta **Lapor Kegiatan**.
 - `LIBUR` hanya Sabtu/Minggu; hari libur nasional belum dikelola sebagai master data.
 
 ### Di luar cakupan iterasi ini

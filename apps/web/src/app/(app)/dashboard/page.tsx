@@ -8,9 +8,6 @@ import {
   CircleSlash,
   Clock4,
   FileSpreadsheet,
-  Fingerprint,
-  History,
-  NotebookPen,
   Percent,
   UserCheck,
   UserRound,
@@ -110,34 +107,7 @@ export default function DashboardPage() {
         <>
           {summary.scope === 'pegawai' ? (
             <>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <QuickAction
-                  href="/riwayat"
-                  icon={History}
-                  title="Rekap Presensi"
-                  description="Lihat kehadiran & rekap"
-                />
-                <QuickAction
-                  onClick={() =>
-                    document
-                      .getElementById('buat-kehadiran')
-                      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  }
-                  icon={Fingerprint}
-                  title="Buat Kehadiran"
-                  description="Catat jam masuk & pulang"
-                />
-                <QuickAction
-                  href="/kegiatan"
-                  icon={NotebookPen}
-                  title="Lapor Kegiatan"
-                  description="Catat aktivitas harian"
-                />
-              </div>
-
-              <div id="buat-kehadiran" className="scroll-mt-24">
-                <CheckInCard summary={summary} onChanged={() => void load()} />
-              </div>
+              <CheckInCard summary={summary} onChanged={() => void load()} />
 
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <StatCard
@@ -319,49 +289,5 @@ export default function DashboardPage() {
 
       {loading && <TableSkeleton />}
     </div>
-  );
-}
-
-function QuickAction({
-  href,
-  onClick,
-  icon: Icon,
-  title,
-  description,
-}: {
-  href?: string;
-  onClick?: () => void;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-}) {
-  const className =
-    'group flex items-center gap-3 rounded-[var(--radius-card)] border border-line bg-white p-3.5 text-left shadow-[var(--shadow-card)] transition-colors hover:border-brand-300 hover:bg-brand-50/40';
-
-  const content = (
-    <>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 group-hover:bg-white">
-        <Icon className="size-[18px]" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-semibold text-ink">{title}</span>
-        <span className="block truncate text-[11px] text-ink-soft">{description}</span>
-      </span>
-      <ArrowRight className="size-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-600" />
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className={className}>
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <button type="button" onClick={onClick} className={className}>
-      {content}
-    </button>
   );
 }
