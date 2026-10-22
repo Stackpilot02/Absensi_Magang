@@ -1,51 +1,60 @@
 /**
- * Seed data dummy untuk pengembangan & demo.
- * Jalankan: npm run db:seed (dari root) atau npm run seed (di apps/api)
+ * Seed akun awal aplikasi Absensi Magang BPS Kabupaten Padang Lawas.
+ *
+ * Yang dibuat:
+ * - 1 kantor (lokasi geofencing),
+ * - akun pengelola (admin, pembimbing, kepala),
+ * - 7 akun pegawai magang dengan username untuk login.
+ *
+ * Seed ini TIDAK membuat data absensi, izin, atau laporan kegiatan palsu.
+ * Jalankan: npm run db:seed (dari root) atau npm run seed (di apps/api).
  */
 import 'dotenv/config';
-import { AttendanceStatus, PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const DEFAULT_DEV_PASSWORD = 'Magang#2026';
+/** Password default pegawai magang. */
+const DEFAULT_MAGANG_PASSWORD = 'bps1221';
 
 function resolveSeedPassword(): string {
   const fromEnv = process.env.SEED_DEFAULT_PASSWORD;
-  if (fromEnv && fromEnv.length >= 8) return fromEnv;
+  if (fromEnv && fromEnv.length >= 6) return fromEnv;
 
   if (process.env.NODE_ENV === 'production') {
     throw new Error('SEED_DEFAULT_PASSWORD wajib diisi saat menjalankan seed di production.');
   }
 
-  // Hanya dipakai untuk data dummy di lingkungan lokal.
-  return DEFAULT_DEV_PASSWORD;
+  return DEFAULT_MAGANG_PASSWORD;
 }
 
-/** Generator acak deterministik agar data demo konsisten. */
-function createRandom(seed: number): () => number {
-  let value = seed;
-  return () => {
-    value = (value * 1664525 + 1013904223) % 4294967296;
-    return value / 4294967296;
-  };
+interface SeedIntern {
+  name: string;
+  username: string;
+  asalKampus: 'MagangHub' | 'Sekolah';
 }
 
-const random = createRandom(20261022);
+/** Nama ditulis tanpa gelar agar seragam di seluruh aplikasi. */
+const INTERNS: SeedIntern[] = [
+  { name: 'Sofi Fauziah Lubis', username: 'sofi1221', asalKampus: 'MagangHub' },
+  { name: 'Khotimah Hasibuan', username: 'khotimah1221', asalKampus: 'MagangHub' },
+  { name: 'Warida Hafni Hasibuan', username: 'warida1221', asalKampus: 'MagangHub' },
+  { name: 'Cut Dila Sari', username: 'cutdila1221', asalKampus: 'MagangHub' },
+  { name: 'Jihan Latifah', username: 'jihan1221', asalKampus: 'MagangHub' },
+  { name: 'Dian', username: 'dian1221', asalKampus: 'Sekolah' },
+  { name: 'Cindy', username: 'cindy1221', asalKampus: 'Sekolah' },
+];
 
-function dateOnly(year: number, month: number, day: number): Date {
-  return new Date(Date.UTC(year, month - 1, day));
-}
-
-function weekend(date: Date): boolean {
-  const day = date.getUTCDay();
-  return day === 0 || day === 6;
+/** Email internal; login sehari-hari memakai username. */
+function internalEmail(username: string): string {
+  return `${username}@magang.local`;
 }
 
 async function main(): Promise<void> {
   const password = await bcrypt.hash(resolveSeedPassword(), 12);
 
-  const office = await prisma.officeLocation.upsert({
+  await prisma.officeLocation.upsert({
     where: { id: '11111111-1111-4111-8111-111111111111' },
     update: {},
     create: {
@@ -94,164 +103,32 @@ async function main(): Promise<void> {
     },
   });
 
-  const interns = [
-    {
-      name: 'Siti Nurhaliza',
-      email: 'siti@mahasiswa.ac.id',
-      nim: '2021110001',
-      asalKampus: 'Universitas Islam Negeri Syekh Ali Hasan Ahmad Addary',
-      prodi: 'Statistika',
-      noHp: '081234567101',
-    },
-    {
-      name: 'Andi Pratama',
-      email: 'andi@mahasiswa.ac.id',
-      nim: '2021110002',
-      asalKampus: 'Universitas Sumatera Utara',
-      prodi: 'Ilmu Komputer',
-      noHp: '081234567102',
-    },
-    {
-      name: 'Maya Sari',
-      email: 'maya@mahasiswa.ac.id',
-      nim: '2021110003',
-      asalKampus: 'Universitas Negeri Medan',
-      prodi: 'Matematika',
-      noHp: '081234567103',
-    },
-    {
-      name: 'Rizky Ramadhan',
-      email: 'rizky@mahasiswa.ac.id',
-      nim: '2021110004',
-      asalKampus: 'Institut Teknologi Del',
-      prodi: 'Teknologi Informasi',
-      noHp: '081234567104',
-    },
-    {
-      name: 'Dewi Lestari',
-      email: 'dewi@mahasiswa.ac.id',
-      nim: '2021110005',
-      asalKampus: 'Universitas Muhammadiyah Sumatera Utara',
-      prodi: 'Sistem Informasi',
-      noHp: '081234567105',
-    },
-    {
-      name: 'Fajar Sidiq',
-      email: 'fajar@mahasiswa.ac.id',
-      nim: '2021110006',
-      asalKampus: 'Politeknik Negeri Medan',
-      prodi: 'Manajemen Informatika',
-      noHp: '081234567106',
-    },
-  ];
-
-  const now = new Date();
-  const periodeMulai = dateOnly(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
-  const periodeSelesai = dateOnly(now.getUTCFullYear(), now.getUTCMonth() + 4, 0);
-
-  const createdInterns = [];
-  for (const intern of interns) {
-    const user = await prisma.user.upsert({
-      where: { email: intern.email },
-      update: {},
+  for (const intern of INTERNS) {
+    const email = internalEmail(intern.username);
+    await prisma.user.upsert({
+      where: { email },
+      update: {
+        name: intern.name,
+        username: intern.username,
+        asalKampus: intern.asalKampus,
+        mentorId: mentor.id,
+      },
       create: {
-        ...intern,
+        name: intern.name,
+        email,
+        username: intern.username,
         password,
         role: Role.MAGANG,
+        asalKampus: intern.asalKampus,
         mentorId: mentor.id,
-        periodeMulai,
-        periodeSelesai,
       },
     });
-    createdInterns.push(user);
   }
-
-  // Absensi dummy untuk bulan berjalan sampai hari ini.
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth() + 1;
-  const lastDay = now.getUTCDate();
-
-  for (const intern of createdInterns) {
-    for (let day = 1; day <= lastDay; day += 1) {
-      const current = dateOnly(year, month, day);
-      if (weekend(current)) continue;
-
-      const roll = random();
-      if (roll < 0.06) continue; // bolong -> alpha
-
-      const late = random() < 0.22;
-      // Jam masuk 07.30 tanpa toleransi: tepat waktu 07.00-07.29, terlambat 07.31-08.19.
-      const onTimeMinute = 7 * 60 + Math.floor(random() * 30);
-      const lateMinute = 7 * 60 + 31 + Math.floor(random() * 49);
-      const checkInMinute = late ? lateMinute : onTimeMinute;
-
-      const checkIn = new Date(current);
-      checkIn.setUTCHours(Math.floor(checkInMinute / 60) - 7, checkInMinute % 60, 0, 0);
-
-      const checkOutMinute = 16 * 60 + Math.floor(random() * 30);
-      const checkOut = new Date(current);
-      checkOut.setUTCHours(Math.floor(checkOutMinute / 60) - 7, checkOutMinute % 60, 0, 0);
-
-      // Hari ini: sebagian pegawai belum check-out.
-      const isToday = day === lastDay;
-      const hasCheckedOut = !isToday || random() < 0.5;
-
-      await prisma.attendance.upsert({
-        where: { userId_date: { userId: intern.id, date: current } },
-        update: {},
-        create: {
-          userId: intern.id,
-          date: current,
-          checkIn,
-          checkOut: hasCheckedOut ? checkOut : null,
-          latitudeIn: office.latitude + (random() - 0.5) * 0.0004,
-          longitudeIn: office.longitude + (random() - 0.5) * 0.0004,
-          latitudeOut: hasCheckedOut ? office.latitude + (random() - 0.5) * 0.0004 : null,
-          longitudeOut: hasCheckedOut ? office.longitude + (random() - 0.5) * 0.0004 : null,
-          distanceIn: Math.round(random() * 60 * 10) / 10,
-          distanceOut: hasCheckedOut ? Math.round(random() * 60 * 10) / 10 : null,
-          status: late ? AttendanceStatus.TERLAMBAT : AttendanceStatus.HADIR,
-          officeLocationId: office.id,
-        },
-      });
-    }
-  }
-
-  // Contoh pengajuan izin (disetujui) dan sakit (menunggu peninjauan).
-  const izinStart = dateOnly(year, month, Math.max(lastDay - 3, 1));
-  await prisma.leaveRequest.upsert({
-    where: { id: '22222222-2222-4222-8222-222222222222' },
-    update: {},
-    create: {
-      id: '22222222-2222-4222-8222-222222222222',
-      userId: createdInterns[1].id,
-      type: 'IZIN',
-      startDate: izinStart,
-      endDate: izinStart,
-      reason: 'Mengikuti sidang skripsi di kampus.',
-      status: 'APPROVED',
-      reviewerId: mentor.id,
-      reviewedAt: new Date(),
-      reviewNote: 'Disetujui, harap melampirkan bukti sidang.',
-    },
-  });
-
-  await prisma.leaveRequest.upsert({
-    where: { id: '33333333-3333-4333-8333-333333333333' },
-    update: {},
-    create: {
-      id: '33333333-3333-4333-8333-333333333333',
-      userId: createdInterns[2].id,
-      type: 'SAKIT',
-      startDate: dateOnly(year, month, lastDay),
-      endDate: dateOnly(year, month, lastDay),
-      reason: 'Demam, disertai surat keterangan dokter.',
-      status: 'PENDING',
-    },
-  });
 
   console.info('Seed selesai.');
-  console.info(`Akun demo (password sama): ${interns[0].email}, admin@padanglawas.bps.go.id`);
+  console.info(`Akun magang: ${INTERNS.map((intern) => intern.username).join(', ')}`);
+  console.info('Password magang: (sesuai SEED_DEFAULT_PASSWORD / default bps1221)');
+  console.info('Akun pengelola: admin@padanglawas.bps.go.id, pembimbing@..., kepala@...');
 }
 
 main()
