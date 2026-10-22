@@ -23,6 +23,7 @@
 - Check in/out
 - Validasi GPS radius kantor
 - Riwayat
+- Lapor kegiatan harian (logbook magang)
 - Export Excel/PDF
 
 ## Rekomendasi Tambahan
@@ -44,13 +45,14 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
 | Area | Status | Keterangan |
 | --- | --- | --- |
 | Login + JWT | Selesai | Cookie `httpOnly`, rate limit login, ganti password |
-| Dashboard Pegawai | Selesai | Check-in/out, statistik bulanan, tren 7 hari |
+| Dashboard Pegawai | Selesai | Tombol rekap presensi, buat kehadiran (cek lokasi → presensi), lapor kegiatan, statistik bulanan, tren 7 hari |
 | Dashboard Admin/Pembimbing/Kepala | Selesai | Statistik peserta, rekap harian, aktivitas terbaru |
 | Riwayat | Selesai | Filter tanggal, status, pagination |
 | Data Mahasiswa | Selesai | CRUD peserta (NIM, kampus, prodi, HP, periode, pembimbing) |
 | Laporan | Selesai | Rekap bulanan + ekspor Excel (2 sheet) & PDF siap tanda tangan |
 | Profil | Selesai | Ubah data diri & password |
 | Izin & Sakit | Selesai | Pengajuan peserta + persetujuan pembimbing/admin |
+| Lapor Kegiatan | Selesai | Logbook harian magang (tanggal + uraian), scoping per peran, filter tanggal |
 | Pengaturan | Selesai | Lokasi & radius kantor, audit log |
 | Geofencing | Selesai | Haversine di server, radius default 100 m |
 | Anti manipulasi waktu | Selesai | Jam server sebagai acuan + validasi selisih jam perangkat |
@@ -90,10 +92,13 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
 - Koordinat kantor BPS Kabupaten Padang Lawas: 1.0601° LU, 99.6644° BT (Plus Code 2PRV+8M8,
   Sibuhuan), radius 100 m — dikonfirmasi 22 Oktober 2026.
 - Jam masuk 07:30 dan tanpa toleransi keterlambatan (diubah 22 Oktober 2026; sebelumnya 08:00 + 15 menit).
-- **Buat Kehadiran (sekali klik)**: pegawai dapat mencatat jam datang dan pulang sekaligus
-  dengan waktu server saat tombol ditekan. Aturan geofence, anti-manipulasi jam, hari libur,
-  periode magang, dan satu absensi per hari tetap berlaku; gunakan dengan bijak karena satu
-  klik menghasilkan absensi sehari penuh.
+- **Buat Kehadiran** memakai satu tombol kontekstual di kartu dashboard: tombol membuka panel
+  kesesuaian lokasi, lalu tombol **Presensi** mencatat jam masuk (jika belum absen) atau jam
+  pulang (jika sudah absen masuk). Jam yang tersimpan adalah waktu server dan langsung
+  ditampilkan setelah berhasil.
+- **Lapor Kegiatan**: pegawai magang menulis laporan harian (tanggal + uraian, maksimal
+  1000 karakter, tidak boleh tanggal yang akan datang). Pembimbing melihat laporan mahasiswa
+  bimbingannya; admin/kepala BPS melihat seluruh laporan dan dapat memfilter rentang tanggal.
 - `LIBUR` hanya Sabtu/Minggu; hari libur nasional belum dikelola sebagai master data.
 
 ### Di luar cakupan iterasi ini

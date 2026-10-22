@@ -24,6 +24,7 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
 │   │       ├── attendance/  # check-in / check-out / riwayat / rekap
 │   │       ├── office-locations/ # titik & radius kantor
 │   │       ├── leaves/      # pengajuan izin & sakit
+│   │       ├── activities/  # laporan kegiatan harian magang
 │   │       ├── reports/     # ekspor Excel & PDF
 │   │       ├── dashboard/   # statistik dashboard
 │   │       ├── audit/       # audit log
@@ -154,8 +155,9 @@ Semua endpoint berada di prefix `/api`.
 | GET/POST/PATCH/DELETE | `/users`, `/users/:id` | admin (lihat: admin/pembimbing/kepala) |
 | GET | `/users/mentees` | admin/pembimbing |
 | PATCH | `/users/me` | terautentikasi |
-| POST | `/attendance/check-in`, `/attendance/check-out` | pegawai magang |
-| POST | `/attendance/instant` | sekali klik: mencatat jam datang & pulang sekaligus |
+| POST | `/attendance/check-in`, `/attendance/check-out` | pegawai magang (satu tombol "Buat Kehadiran" di UI) |
+| POST/GET | `/activities` | magang: laporan sendiri; pengelola: melihat laporan |
+| PATCH/DELETE | `/activities/:id` | pemilik laporan (magang) |
 | GET | `/attendance/today`, `/attendance/history`, `/attendance/summary` | sesuai role |
 | GET/POST/PATCH/DELETE | `/office-locations` | lihat: semua; ubah: admin |
 | POST/GET | `/leaves` | terautentikasi |
