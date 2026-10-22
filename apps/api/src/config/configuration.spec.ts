@@ -6,7 +6,14 @@ import { configuration } from './configuration';
  * ketika pegawai melakukan check-in.
  */
 describe('konfigurasi jam kerja', () => {
-  const KEYS = ['NODE_ENV', 'JWT_SECRET', 'WORK_START_TIME', 'LATE_TOLERANCE_MINUTES'] as const;
+  const KEYS = [
+    'NODE_ENV',
+    'JWT_SECRET',
+    'WORK_START_TIME',
+    'LATE_TOLERANCE_MINUTES',
+    'COOKIE_SAME_SITE',
+    'COOKIE_SECURE',
+  ] as const;
   let saved: Record<string, string | undefined>;
 
   beforeEach(() => {
@@ -62,5 +69,37 @@ describe('konfigurasi jam kerja', () => {
 
     process.env.LATE_TOLERANCE_MINUTES = '1.5';
     expect(() => configuration()).toThrow(/LATE_TOLERANCE_MINUTES/);
+  });
+
+  describe('cookie sesi', () => {
+    it('memakai SameSite=lax dan tidak Secure di development', () => {
+      const { cookie } = configuration();
+
+      expect(cookie.sameSite).toBe('lax');
+      expect(cookie.secure).toBe(false);
+    });
+
+    it('menerima SameSite=none bila Secure aktif', () => {
+      process.env.COOKIE_SAME_SITE = 'none';
+      process.env.COOKIE_SECURE = 'true';
+
+      const { cookie } = configuration();
+
+      expect(cookie.sameSite).toBe('none');
+      expect(cookie.secure).toBe(true);
+    });
+
+    it('menolak SameSite=none tanpa Secure', () => {
+      process.env.COOKIE_SAME_SITE = 'none';
+      process.env.COOKIE_SECURE = 'false';
+
+      expect(() => configuration()).toThrow(/COOKIE_SECURE=true/);
+    });
+
+    it('menolak nilai SameSite yang tidak dikenal', () => {
+      process.env.COOKIE_SAME_SITE = 'no-ne';
+
+      expect(() => configuration()).toThrow(/COOKIE_SAME_SITE/);
+    });
   });
 });

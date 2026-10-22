@@ -78,12 +78,36 @@ export function parseDurationSeconds(value: string, fallbackSeconds = 28_800): n
   return amount * (multipliers[unit] ?? 1);
 }
 
+/** Nilai SameSite yang diterima browser. */
+const SAME_SITE_VALUES = ['lax', 'strict', 'none'] as const;
+type SameSiteValue = (typeof SAME_SITE_VALUES)[number];
+
+function readSameSite(value: string | undefined): SameSiteValue {
+  const normalized = (value ?? 'lax').trim().toLowerCase();
+  if (!SAME_SITE_VALUES.includes(normalized as SameSiteValue)) {
+    throw new Error(
+      `COOKIE_SAME_SITE tidak valid ("${value}"). Gunakan lax, strict, atau none.`,
+    );
+  }
+  return normalized as SameSiteValue;
+}
+
 export const configuration = (): AppConfiguration => {
   const nodeEnv = process.env.NODE_ENV ?? 'development';
   const secret = process.env.JWT_SECRET ?? '';
 
   if (nodeEnv === 'production' && secret.length < 32) {
     throw new Error('JWT_SECRET wajib diisi minimal 32 karakter pada environment production.');
+  }
+
+  const cookieSecure = readBoolean(process.env.COOKIE_SECURE, nodeEnv === 'production');
+  const cookieSameSite = readSameSite(process.env.COOKIE_SAME_SITE);
+
+  if (cookieSameSite === 'none' && !cookieSecure) {
+    throw new Error(
+      'COOKIE_SAME_SITE=none mengharuskan COOKIE_SECURE=true, ' +
+        'karena browser menolak cookie SameSite=None tanpa Secure.',
+    );
   }
 
   return {
@@ -99,8 +123,8 @@ export const configuration = (): AppConfiguration => {
     },
     cookie: {
       name: 'absensi_token',
-      secure: readBoolean(process.env.COOKIE_SECURE, nodeEnv === 'production'),
-      sameSite: (process.env.COOKIE_SAME_SITE as AppConfiguration['cookie']['sameSite']) ?? 'lax',
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
       maxAgeMs: COOKIE_MAX_AGE_MS,
     },
     attendance: {
