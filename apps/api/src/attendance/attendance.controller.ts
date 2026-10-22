@@ -29,6 +29,16 @@ export class AttendanceController {
     return this.attendanceService.checkOut(user, dto);
   }
 
+  /** Sekali klik: mencatat jam datang dan pulang dengan waktu server saat ini. */
+  @Post('instant')
+  @HttpCode(201)
+  createInstant(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CheckInDto,
+  ): Promise<{ message: string; data: Attendance }> {
+    return this.attendanceService.createInstant(user, dto);
+  }
+
   @Get('today')
   today(@CurrentUser() user: AuthUser): Promise<AttendanceWithMeta | null> {
     return this.attendanceService.findToday(user);
