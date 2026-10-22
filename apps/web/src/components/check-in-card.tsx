@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
+  CheckCheck,
   CheckCircle2,
   Clock3,
   Loader2,
@@ -30,7 +31,7 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
 
   const [position, setPosition] = useState<BrowserPosition | null>(null);
   const [locating, setLocating] = useState(false);
-  const [submitting, setSubmitting] = useState<'in' | 'out' | null>(null);
+  const [submitting, setSubmitting] = useState<'in' | 'out' | 'instant' | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
@@ -82,7 +83,7 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
   const needCheckOut = Boolean(hariIni.checkIn) && !hariIni.checkOut;
   const finished = Boolean(hariIni.checkIn && hariIni.checkOut);
 
-  async function submitAttendance(kind: 'in' | 'out'): Promise<void> {
+  async function submitAttendance(kind: 'in' | 'out' | 'instant'): Promise<void> {
     if (!position) {
       setGeoError('Lokasi belum terdeteksi. Tekan "Perbarui lokasi" lalu coba lagi.');
       return;
@@ -91,15 +92,19 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
     setSubmitting(kind);
     setFeedback(null);
 
+    const endpoint =
+      kind === 'in'
+        ? '/attendance/check-in'
+        : kind === 'out'
+          ? '/attendance/check-out'
+          : '/attendance/instant';
+
     try {
-      const result = await api.post<{ message: string }>(
-        kind === 'in' ? '/attendance/check-in' : '/attendance/check-out',
-        {
-          latitude: position.latitude,
-          longitude: position.longitude,
-          deviceTime: position.deviceTime,
-        },
-      );
+      const result = await api.post<{ message: string }>(endpoint, {
+        latitude: position.latitude,
+        longitude: position.longitude,
+        deviceTime: position.deviceTime,
+      });
       setFeedback({ type: 'success', message: result.message });
       onChanged();
     } catch (error) {
@@ -109,6 +114,30 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
     } finally {
       setSubmitting(null);
     }
+  }
+
+  /** Satu klik untuk mencatat jam datang dan pulang sekaligus (waktu server). */
+  async function submitInstant(): Promise<void> {
+    if (!position) {
+      setGeoError('Lokasi belum terdeteksi. Tekan "Perbarui lokasi" lalu coba lagi.');
+      return;
+    }
+
+    const jam = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date());
+
+    const confirmed = window.confirm(
+      `Buat kehadiran untuk hari ini?\n\n` +
+        `Jam datang dan jam pulang akan tercatat pukul ${jam} WIB (waktu sekarang). ` +
+        `Setelah tersimpan, kehadiran hari ini tidak dapat dibuat ulang.`,
+    );
+    if (!confirmed) return;
+
+    await submitAttendance('instant');
   }
 
   return (
@@ -202,19 +231,40 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
 
         <div className="flex flex-col justify-center gap-2.5 rounded-xl border border-dashed border-line bg-surface/60 p-4">
           {needCheckIn && (
-            <Button
-              size="lg"
-              disabled={!insideRadius || submitting !== null || locating}
-              onClick={() => void submitAttendance('in')}
-              className="w-full"
-            >
-              {submitting === 'in' ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <LogIn className="size-4" />
-              )}
-              Check-in sekarang
-            </Button>
+            <>
+              <Button
+                size="lg"
+                disabled={!insideRadius || submitting !== null || locating}
+                onClick={() => void submitInstant()}
+                className="w-full"
+              >
+                {submitting === 'instant' ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCheck className="size-4" />
+                )}
+                Buat Kehadiran
+              </Button>
+
+              <Button
+                size="lg"
+                variant="outline"
+                disabled={!insideRadius || submitting !== null || locating}
+                onClick={() => void submitAttendance('in')}
+                className="w-full"
+              >
+                {submitting === 'in' ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <LogIn className="size-4" />
+                )}
+                Check-in saja
+              </Button>
+
+              <p className="text-center text-[10.5px] leading-relaxed text-slate-400">
+                Buat Kehadiran mencatat jam datang &amp; pulang sekaligus dengan waktu sekarang.
+              </p>
+            </>
           )}
 
           {needCheckOut && (
