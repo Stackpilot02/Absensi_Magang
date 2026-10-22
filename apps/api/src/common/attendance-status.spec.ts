@@ -36,6 +36,13 @@ describe('attendance-status', () => {
     expect(computeAttendanceStatus(new Date('2026-10-21T01:16:00Z'), SCHEDULE)).toBe('TERLAMBAT');
   });
 
+  it('tanpa toleransi: 07.30 HADIR, 07.31 TERLAMBAT', () => {
+    const schedule = { workStartTime: '07:30', lateToleranceMinutes: 0 };
+    // 07:30 WIB = 00:30 UTC, 07:31 WIB = 00:31 UTC
+    expect(computeAttendanceStatus(new Date('2026-10-21T00:30:00Z'), schedule)).toBe('HADIR');
+    expect(computeAttendanceStatus(new Date('2026-10-21T00:31:00Z'), schedule)).toBe('TERLAMBAT');
+  });
+
   it('mengenali akhir pekan', () => {
     expect(isWeekend(new Date('2026-10-24T03:00:00Z'))).toBe(true); // Sabtu
     expect(isWeekend(new Date('2026-10-25T03:00:00Z'))).toBe(true); // Minggu

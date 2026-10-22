@@ -82,7 +82,7 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
 
 ### Asumsi yang perlu dikonfirmasi
 - Koordinat kantor BPS Kabupaten Padang Lawas pada seed masih perkiraan (Sibuhuan).
-- Jam masuk 08:00 dan toleransi keterlambatan 15 menit.
+- Jam masuk 07:30 dan tanpa toleransi keterlambatan (diubah 22 Oktober 2026; sebelumnya 08:00 + 15 menit).
 - `LIBUR` hanya Sabtu/Minggu; hari libur nasional belum dikelola sebagai master data.
 
 ### Di luar cakupan iterasi ini

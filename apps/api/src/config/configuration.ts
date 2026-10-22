@@ -26,10 +26,36 @@ export interface AppConfiguration {
 
 const DEFAULT_JWT_EXPIRES_IN = '8h';
 const COOKIE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
+/** Jam masuk kantor BPS Kab. Padang Lawas: 07.30 WIB tanpa toleransi. */
+const DEFAULT_WORK_START_TIME = '07:30';
+const DEFAULT_LATE_TOLERANCE_MINUTES = 0;
+const MAX_LATE_TOLERANCE_MINUTES = 180;
 
 function readNumber(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/** Validasi jam masuk agar kesalahan konfigurasi ketahuan saat startup, bukan saat absensi. */
+function readWorkStartTime(value: string | undefined): string {
+  const workStartTime = value ?? DEFAULT_WORK_START_TIME;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(workStartTime)) {
+    throw new Error(
+      `WORK_START_TIME tidak valid ("${workStartTime}"). Gunakan format HH:mm, contoh 07:30.`,
+    );
+  }
+  return workStartTime;
+}
+
+/** Toleransi 0 berarti check-in lewat 1 menit pun sudah TERLAMBAT. */
+function readLateTolerance(value: string | undefined): number {
+  const minutes = readNumber(value, DEFAULT_LATE_TOLERANCE_MINUTES);
+  if (!Number.isInteger(minutes) || minutes < 0 || minutes > MAX_LATE_TOLERANCE_MINUTES) {
+    throw new Error(
+      `LATE_TOLERANCE_MINUTES harus bilangan bulat 0-${MAX_LATE_TOLERANCE_MINUTES}.`,
+    );
+  }
+  return minutes;
 }
 
 function readBoolean(value: string | undefined, fallback: boolean): boolean {
@@ -78,8 +104,8 @@ export const configuration = (): AppConfiguration => {
       maxAgeMs: COOKIE_MAX_AGE_MS,
     },
     attendance: {
-      workStartTime: process.env.WORK_START_TIME ?? '08:00',
-      lateToleranceMinutes: readNumber(process.env.LATE_TOLERANCE_MINUTES, 15),
+      workStartTime: readWorkStartTime(process.env.WORK_START_TIME),
+      lateToleranceMinutes: readLateTolerance(process.env.LATE_TOLERANCE_MINUTES),
       maxClockSkewSeconds: readNumber(process.env.MAX_CLOCK_SKEW_SECONDS, 300),
     },
   };

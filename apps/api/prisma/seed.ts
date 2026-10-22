@@ -180,8 +180,10 @@ async function main(): Promise<void> {
       if (roll < 0.06) continue; // bolong -> alpha
 
       const late = random() < 0.22;
-      const startMinute = 7 * 60 + 30 + Math.floor(random() * 30);
-      const checkInMinute = late ? 8 * 60 + 16 + Math.floor(random() * 40) : startMinute;
+      // Jam masuk 07.30 tanpa toleransi: tepat waktu 07.00-07.29, terlambat 07.31-08.19.
+      const onTimeMinute = 7 * 60 + Math.floor(random() * 30);
+      const lateMinute = 7 * 60 + 31 + Math.floor(random() * 49);
+      const checkInMinute = late ? lateMinute : onTimeMinute;
 
       const checkIn = new Date(current);
       checkIn.setUTCHours(Math.floor(checkInMinute / 60) - 7, checkInMinute % 60, 0, 0);

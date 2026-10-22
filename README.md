@@ -133,7 +133,7 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
 | Check-out setelah check-in | Ditolak bila belum check-in / sudah check-out |
 | Radius default 100 m | `office_location.radius`, validasi haversine di server |
 | Status kehadiran | `HADIR`, `TERLAMBAT`, `IZIN`, `SAKIT`, `ALPHA`, `LIBUR` |
-| Toleransi keterlambatan | `WORK_START_TIME` + `LATE_TOLERANCE_MINUTES` (default 08:00 + 15 menit) |
+| Toleransi keterlambatan | `WORK_START_TIME` + `LATE_TOLERANCE_MINUTES` (default **07:30 + 0 menit**) |
 | Anti manipulasi jam | Jam server jadi acuan; selisih jam perangkat > `MAX_CLOCK_SKEW_SECONDS` ditolak |
 | Akhir pekan | Sabtu/Minggu berstatus `LIBUR`, check-in ditolak |
 | Periode magang | Check-in ditolak di luar rentang periode peserta |
@@ -220,4 +220,4 @@ Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
 
 - Koordinat resmi kantor BPS Kabupaten Padang Lawas pada seed masih perkiraan
   (lihat `apps/api/prisma/seed.ts`); sesuaikan lewat menu **Pengaturan** di aplikasi.
-- Jam masuk kantor (08:00) dan toleransi 15 menit perlu dikonfirmasi ke pembimbing.
+- Jam masuk kantor **07:30 WIB tanpa toleransi** (diubah 22 Oktober 2026; sebelumnya 08:00 + 15 menit).
