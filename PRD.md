@@ -74,6 +74,12 @@ Bagian ini bersifat aditif dan mencatat keputusan teknis selama implementasi.
    Prisma melakukan retry koneksi (3 percobaan) dan tersedia endpoint `GET /api/health/db`
    untuk monitoring sekaligus memanaskan koneksi.
 
+   **Status verifikasi (22 Oktober 2026):** pipeline database Neon sudah diuji langsung
+   pada project Neon region Singapore — `prisma migrate deploy` (tabel & index terbentuk),
+   seed data demo, serta smoke test API end-to-end (login/RBAC, check-in & check-out,
+   penolakan di luar radius 100 m, penolakan manipulasi jam perangkat, pengajuan & review
+   izin, dashboard, export Excel/PDF, audit log, login throttle) berjalan sesuai harapan.
+
 ### Asumsi yang perlu dikonfirmasi
 - Koordinat kantor BPS Kabupaten Padang Lawas pada seed masih perkiraan (Sibuhuan).
 - Jam masuk 08:00 dan toleransi keterlambatan 15 menit.
