@@ -8,7 +8,7 @@ import type { User } from '@/lib/types';
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (identifier: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -49,8 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('absensi:unauthorized', handleUnauthorized);
   }, [router]);
 
-  const login = useCallback(async (email: string, password: string): Promise<User> => {
-    const result = await api.post<{ user: User }>('/auth/login', { email, password });
+  const login = useCallback(async (identifier: string, password: string): Promise<User> => {
+    const result = await api.post<{ user: User }>('/auth/login', { identifier, password });
     setUser(result.user);
     return result.user;
   }, []);

@@ -12,6 +12,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  username: string | null;
   role: Role;
   nim: string | null;
   asalKampus: string | null;
@@ -68,6 +69,7 @@ export interface DashboardSummary {
   scope: 'pegawai' | 'pengelola';
   tanggal: string;
   kantor: { name: string; latitude: number; longitude: number; radius: number } | null;
+  jadwal: { masuk: string; pulang: string };
   hariIni: {
     checkIn: string | null;
     checkOut: string | null;
@@ -102,6 +104,7 @@ export interface ActivityReport {
   id: string;
   userId: string;
   date: string;
+  time: string;
   description: string;
   createdAt: string;
   updatedAt: string;

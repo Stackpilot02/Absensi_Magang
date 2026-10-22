@@ -22,6 +22,26 @@ function jakartaTodayKey(): string {
   }).format(new Date());
 }
 
+function jakartaTimeKey(): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date());
+}
+
+/** Menampilkan hari dan tanggal dari kunci YYYY-MM-DD tanpa bergeser zona waktu. */
+function formatHariTanggal(dateKey: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${dateKey.slice(0, 10)}T00:00:00+07:00`));
+}
+
 export default function KegiatanPage() {
   const { user } = useAuth();
   const isMagang = user?.role === 'MAGANG';
@@ -33,6 +53,7 @@ export default function KegiatanPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const [date, setDate] = useState(jakartaTodayKey());
+  const [time, setTime] = useState(jakartaTimeKey());
   const [description, setDescription] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -67,6 +88,7 @@ export default function KegiatanPage() {
 
   function resetForm(): void {
     setDate(jakartaTodayKey());
+    setTime(jakartaTimeKey());
     setDescription('');
     setEditingId(null);
     setFormError(null);
@@ -75,6 +97,7 @@ export default function KegiatanPage() {
   function startEdit(item: ActivityReport): void {
     setEditingId(item.id);
     setDate(item.date.slice(0, 10));
+    setTime(item.time);
     setDescription(item.description);
     setFormError(null);
     setNotice(null);
@@ -93,6 +116,10 @@ export default function KegiatanPage() {
       setFormError('Tanggal kegiatan tidak boleh melebihi hari ini.');
       return;
     }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      setFormError('Jam kegiatan wajib diisi dengan format HH:mm.');
+      return;
+    }
 
     setSaving(true);
     setFormError(null);
@@ -100,10 +127,10 @@ export default function KegiatanPage() {
 
     try {
       if (editingId) {
-        await api.patch(`/activities/${editingId}`, { date, description: text });
+        await api.patch(`/activities/${editingId}`, { date, time, description: text });
         setNotice('Laporan kegiatan berhasil diperbarui.');
       } else {
-        await api.post('/activities', { date, description: text });
+        await api.post('/activities', { date, time, description: text });
         setNotice('Laporan kegiatan berhasil disimpan.');
       }
       resetForm();
@@ -157,7 +184,7 @@ export default function KegiatanPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
+              <div className="grid gap-4 sm:grid-cols-[200px_130px_1fr]">
                 <div className="space-y-1.5">
                   <Label htmlFor="tanggal-kegiatan">Tanggal kegiatan</Label>
                   <Input
@@ -166,6 +193,19 @@ export default function KegiatanPage() {
                     value={date}
                     max={jakartaTodayKey()}
                     onChange={(event) => setDate(event.target.value)}
+                    required
+                  />
+                  <p className="text-[10.5px] text-ink-soft">
+                    {date ? formatHariTanggal(date) : 'Pilih tanggal kegiatan'}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="jam-kegiatan">Jam kegiatan</Label>
+                  <Input
+                    id="jam-kegiatan"
+                    type="time"
+                    value={time}
+                    onChange={(event) => setTime(event.target.value)}
                     required
                   />
                 </div>
@@ -292,7 +332,8 @@ export default function KegiatanPage() {
                       <div className="min-w-0">
                         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold text-ink">
                           <ClipboardList className="size-4 text-brand-600" />
-                          {formatTanggal(item.date)}
+                          {formatHariTanggal(item.date)}
+                          <span className="font-normal text-ink-soft">· {item.time} WIB</span>
                           {!isMagang && item.user && (
                             <span className="font-normal text-ink-soft">
                               · {item.user.name}

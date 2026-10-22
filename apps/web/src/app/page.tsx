@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2, LockKeyhole, Mail, MapPinCheck, ShieldCheck } from 'lucide-react';
+import { AtSign, Eye, EyeOff, Loader2, LockKeyhole, MapPinCheck, ShieldCheck } from 'lucide-react';
 import { BrandLockup, BrandMark } from '@/components/brand';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ export default function LoginPage() {
   const { user, loading, login } = useAuth();
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      await login(email.trim(), password);
+      await login(identifier.trim(), password);
       router.replace('/dashboard');
     } catch (caught) {
       if (caught instanceof ApiError) {
@@ -128,24 +128,24 @@ export default function LoginPage() {
           <p className="label-caps">Masuk ke akun</p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink">Selamat datang kembali</h2>
           <p className="mt-1.5 text-[13px] text-ink-soft">
-            Gunakan email dan password yang diberikan admin BPS.
+            Gunakan email atau username dan password yang diberikan admin BPS.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4" noValidate>
             {error && <Alert variant="error">{error}</Alert>}
 
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Email atau Username</Label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <AtSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="nama@padanglawas.bps.go.id"
+                  id="identifier"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="contoh: dian1221"
                   className="h-11 pl-9"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  value={identifier}
+                  onChange={(event) => setIdentifier(event.target.value)}
                   required
                 />
               </div>
@@ -198,10 +198,10 @@ export default function LoginPage() {
                   <span className="font-medium text-ink">Admin:</span> admin@padanglawas.bps.go.id
                 </li>
                 <li>
-                  <span className="font-medium text-ink">Magang:</span> siti@mahasiswa.ac.id
+                  <span className="font-medium text-ink">Magang:</span> dian1221
                 </li>
                 <li>
-                  <span className="font-medium text-ink">Password:</span> Magang#2026
+                  <span className="font-medium text-ink">Password:</span> bps1221
                 </li>
               </ul>
             </div>

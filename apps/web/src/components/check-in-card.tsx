@@ -39,6 +39,7 @@ interface PresensiResult {
 
 export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
   const { kantor, hariIni } = summary;
+  const jadwal = summary.jadwal ?? { masuk: '07:30', pulang: '16:00' };
   const { user, logout } = useAuth();
 
   const [position, setPosition] = useState<BrowserPosition | null>(null);
@@ -49,21 +50,34 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<PresensiResult | null>(null);
   const [clock, setClock] = useState<string | null>(null);
+  const [nowMinutes, setNowMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    const timer = window.setInterval(
-      () =>
-        setClock(
-          new Intl.DateTimeFormat('id-ID', {
-            timeZone: 'Asia/Jakarta',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hourCycle: 'h23',
-          }).format(new Date()),
-        ),
-      1000,
-    );
+    function tick(): void {
+      const current = new Date();
+      setClock(
+        new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hourCycle: 'h23',
+        }).format(current),
+      );
+      const [hour, minute] = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .format(current)
+        .split(':')
+        .map(Number);
+      setNowMinutes(hour * 60 + minute);
+    }
+
+    tick();
+    const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -95,14 +109,22 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
   const needCheckOut = Boolean(hariIni.checkIn) && !hariIni.checkOut;
   const finished = Boolean(hariIni.checkIn && hariIni.checkOut);
   const mode: PresensiKind = needCheckIn ? 'in' : 'out';
+  const checkoutOpen = nowMinutes !== null && nowMinutes >= parseTimeMinutes(jadwal.pulang);
+  const waitingForCheckout = needCheckOut && nowMinutes !== null && !checkoutOpen;
 
   const statusText = finished
     ? 'Absensi hari ini lengkap. Terima kasih!'
-    : needCheckOut
-      ? 'Jam masuk sudah tercatat — jangan lupa absen pulang.'
-      : 'Belum absen masuk hari ini.';
+    : waitingForCheckout
+      ? `Absen pulang baru dibuka pukul ${formatJadwal(jadwal.pulang)} WIB.`
+      : needCheckOut
+        ? 'Jam masuk sudah tercatat — jangan lupa absen pulang.'
+        : 'Belum absen masuk hari ini.';
 
   async function openPanel(): Promise<void> {
+    if (waitingForCheckout) {
+      setSubmitError(`Absen pulang baru dapat dilakukan mulai pukul ${formatJadwal(jadwal.pulang)} WIB.`);
+      return;
+    }
     setSubmitError(null);
     setPanelOpen(true);
     await locate();
@@ -214,12 +236,19 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
           <button
             type="button"
             onClick={() => void openPanel()}
-            disabled={finished || locating || submitting !== null}
+            disabled={finished || waitingForCheckout || locating || submitting !== null}
+            title={
+              waitingForCheckout
+                ? `Absen pulang dibuka pukul ${formatJadwal(jadwal.pulang)} WIB`
+                : undefined
+            }
             className={cn(
               'group flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition-all',
               finished
                 ? 'cursor-default border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-brand-100 bg-gradient-to-b from-brand-50 to-brand-100/80 text-brand-800 hover:border-brand-300 hover:from-brand-100 hover:to-brand-100 active:scale-[0.98]',
+                : waitingForCheckout
+                  ? 'cursor-not-allowed border-amber-200 bg-amber-50 text-amber-800'
+                  : 'border-brand-100 bg-gradient-to-b from-brand-50 to-brand-100/80 text-brand-800 hover:border-brand-300 hover:from-brand-100 hover:to-brand-100 active:scale-[0.98]',
               panelOpen && !finished && 'ring-2 ring-brand-300',
             )}
           >
@@ -228,12 +257,14 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
                 <Loader2 className="size-[18px] animate-spin" />
               ) : finished ? (
                 <CheckCircle2 className="size-[18px] text-emerald-600" />
+              ) : waitingForCheckout ? (
+                <Clock3 className="size-[18px] text-amber-600" />
               ) : (
                 <Fingerprint className="size-[18px] text-brand-600" />
               )}
             </span>
             <span className="text-[11px] font-semibold leading-tight">
-              {finished ? 'Presensi Selesai' : 'Buat Kehadiran'}
+              {finished ? 'Presensi Selesai' : waitingForCheckout ? 'Belum Waktunya' : 'Buat Kehadiran'}
             </span>
           </button>
 
@@ -246,6 +277,11 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
         </div>
 
         <p className="mt-3 text-center text-[11px] text-ink-soft">{statusText}</p>
+
+        <p className="mt-1 flex items-center justify-center gap-1.5 text-[10.5px] text-ink-soft">
+          <Clock3 className="size-3.5 text-slate-400" />
+          Jam kerja {formatJadwal(jadwal.masuk)}–{formatJadwal(jadwal.pulang)} WIB
+        </p>
 
         <div className="mt-2 flex items-center justify-center gap-1.5 text-[10.5px] text-ink-soft">
           <LocateFixed className="size-3.5 text-slate-400" />
@@ -356,7 +392,7 @@ export function CheckInCard({ summary, onChanged }: CheckInCardProps) {
 
             <Button
               size="lg"
-              disabled={!insideRadius || submitting !== null || locating}
+              disabled={!insideRadius || submitting !== null || locating || waitingForCheckout}
               onClick={() => void submitPresensi()}
               className="w-full"
             >
@@ -466,6 +502,16 @@ function HeroPattern() {
       </g>
     </svg>
   );
+}
+
+function parseTimeMinutes(value: string): number {
+  const [hour, minute] = value.split(':').map(Number);
+  return (Number.isFinite(hour) ? hour : 0) * 60 + (Number.isFinite(minute) ? minute : 0);
+}
+
+/** Menampilkan jam gaya Indonesia, mis. 16:00 menjadi 16.00. */
+function formatJadwal(value: string): string {
+  return value.replace(':', '.');
 }
 
 function formatJam(value: string | null): string {
