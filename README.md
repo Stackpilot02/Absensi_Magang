@@ -17,7 +17,7 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
 .
 ├── apps/
 │   ├── api/                 # NestJS REST API
-│   │   ├── prisma/          # schema, seed data dummy
+│   │   ├── prisma/          # schema, migration, seed akun awal
 │   │   └── src/
 │   │       ├── auth/        # login, JWT, ganti password
 │   │       ├── users/       # data peserta & pembimbing
@@ -100,7 +100,7 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
    > koneksi pooled agar jumlah koneksi efisien, sedangkan `prisma migrate`/`db seed`
    > butuh koneksi langsung karena menjalankan DDL (tidak didukung PgBouncer).
 
-4. **Jalankan migrasi & data dummy** (bila belum)
+4. **Jalankan migrasi & seed akun awal** (bila belum)
 
    ```bash
    npm run db:generate
@@ -115,16 +115,26 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
    npm run dev:web   # http://localhost:3000
    ```
 
-### Akun demo (hasil seed)
+### Akun awal (hasil seed)
 
-| Peran       | Email                                | Password     |
-| ----------- | ------------------------------------ | ------------ |
-| Admin       | admin@padanglawas.bps.go.id          | `Magang#2026` |
-| Pembimbing  | pembimbing@padanglawas.bps.go.id     | `Magang#2026` |
-| Kepala BPS  | kepala@padanglawas.bps.go.id         | `Magang#2026` |
-| Magang      | siti@mahasiswa.ac.id                 | `Magang#2026` |
+Akun pegawai magang login memakai **username** (bisa juga email internalnya).
 
-> Password seed dapat diubah lewat `SEED_DEFAULT_PASSWORD`. Data dummy hanya untuk lokal.
+| Peran | Username | Email internal | Password |
+| --- | --- | --- | --- |
+| Admin | — | admin@padanglawas.bps.go.id | `bps1221` saat akun baru; akun lama tidak diubah |
+| Pembimbing | — | pembimbing@padanglawas.bps.go.id | `bps1221` saat akun baru; akun lama tidak diubah |
+| Kepala BPS | — | kepala@padanglawas.bps.go.id | `bps1221` saat akun baru; akun lama tidak diubah |
+| Magang (MagangHub) | `sofi1221` | sofi1221@magang.local | `bps1221` |
+| Magang (MagangHub) | `khotimah1221` | khotimah1221@magang.local | `bps1221` |
+| Magang (MagangHub) | `warida1221` | warida1221@magang.local | `bps1221` |
+| Magang (MagangHub) | `cutdila1221` | cutdila1221@magang.local | `bps1221` |
+| Magang (MagangHub) | `jihan1221` | jihan1221@magang.local | `bps1221` |
+| Magang (Sekolah) | `dian1221` | dian1221@magang.local | `bps1221` |
+| Magang (Sekolah) | `cindy1221` | cindy1221@magang.local | `bps1221` |
+
+> Password magang mengikuti `SEED_DEFAULT_PASSWORD` bila diisi, default `bps1221`. Seed hanya
+> membuat akun dan kantor — tidak membuat absensi, izin, atau laporan kegiatan palsu. Akun
+> pengelola yang sudah ada tidak diubah password-nya oleh seed.
 
 ## Aturan Bisnis Absensi
 
@@ -132,6 +142,7 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
 | --- | --- |
 | Check-in 1×/hari | Unique constraint `(user_id, date)` + validasi service |
 | Check-out setelah check-in | Ditolak bila belum check-in / sudah check-out |
+| Check-out jam pulang | Ditolak sebelum `WORK_END_TIME` (default **16:00 WIB**) |
 | Radius default 100 m | `office_location.radius`, validasi haversine di server |
 | Status kehadiran | `HADIR`, `TERLAMBAT`, `IZIN`, `SAKIT`, `ALPHA`, `LIBUR` |
 | Toleransi keterlambatan | `WORK_START_TIME` + `LATE_TOLERANCE_MINUTES` (default **07:30 + 0 menit**) |
@@ -234,4 +245,5 @@ Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
 - Koordinat kantor BPS Kabupaten Padang Lawas: **1.0601° LU, 99.6644° BT**
   (Plus Code `2PRV+8M8`, Sibuhuan), radius absensi **100 meter**.
   Nilai ini tersimpan di tabel `office_location` dan dapat diubah lewat menu **Pengaturan**.
-- Jam masuk kantor **07:30 WIB tanpa toleransi** (diubah 22 Oktober 2026; sebelumnya 08:00 + 15 menit).
+- Jam masuk kantor **07:30 WIB tanpa toleransi** dan jam pulang **16:00 WIB** (diubah 22
+  Oktober 2026; sebelumnya 08:00 + 15 menit). Absen pulang sebelum 16:00 ditolak server.
