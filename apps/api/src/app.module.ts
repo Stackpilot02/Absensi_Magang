@@ -13,6 +13,7 @@ import { UsersModule } from './users/users.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { OfficeLocationsModule } from './office-locations/office-locations.module';
 import { LeavesModule } from './leaves/leaves.module';
+import { ActivitiesModule } from './activities/activities.module';
 import { ReportsModule } from './reports/reports.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AuditLogsModule } from './audit/audit-logs.module';
@@ -32,6 +33,7 @@ import { HealthController } from './health.controller';
     AttendanceModule,
     OfficeLocationsModule,
     LeavesModule,
+    ActivitiesModule,
     ReportsModule,
     DashboardModule,
     AuditLogsModule,

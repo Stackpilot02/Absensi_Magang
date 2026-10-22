@@ -62,10 +62,11 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  attendances   Attendance[]
-  leaveRequests LeaveRequest[] @relation("Pengaju")
-  reviews       LeaveRequest[] @relation("Peninjau")
-  auditLogs     AuditLog[]
+  attendances     Attendance[]
+  leaveRequests   LeaveRequest[]  @relation("Pengaju")
+  reviews         LeaveRequest[]  @relation("Peninjau")
+  activityReports ActivityReport[]
+  auditLogs       AuditLog[]
 
   @@index([role])
   @@index([mentorId])
@@ -134,6 +135,21 @@ model LeaveRequest {
   @@index([userId, startDate])
   @@index([status])
   @@map("leave_request")
+}
+
+/// Laporan kegiatan/aktivitas harian pegawai magang (logbook).
+model ActivityReport {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([date])
+  @@map("activity_report")
 }
 
 model AuditLog {
