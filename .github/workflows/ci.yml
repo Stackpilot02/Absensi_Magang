@@ -25,6 +25,9 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://absensi:absensi_ci@localhost:5432/absensi_magang?schema=public
+      # Pada CI dipakai Postgres service lokal, jadi koneksi langsung = koneksi biasa.
+      # Di production (Neon) isi DIRECT_URL dengan connection string tanpa "-pooler".
+      DIRECT_URL: postgresql://absensi:absensi_ci@localhost:5432/absensi_magang?schema=public
       JWT_SECRET: ci-only-secret-tidak-dipakai-di-production
       JWT_EXPIRES_IN: 8h
       CORS_ORIGIN: http://localhost:3000
