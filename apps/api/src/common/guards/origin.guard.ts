@@ -7,9 +7,10 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /**
  * Pertahanan tambahan terhadap CSRF.
  *
- * Di production frontend dan backend berada pada domain berbeda sehingga cookie
- * memakai SameSite=None (cookie ikut terkirim pada request lintas situs). CORS
- * saja tidak cukup untuk menahan request "simple", jadi setiap request yang
+ * Pada deployment Cloudflare Pages + Tunnel, browser hanya berkomunikasi dengan
+ * origin Pages dan proxy `/api` meneruskan cookie (SameSite=Lax). Pada opsi
+ * deployment lama dengan domain berbeda, cookie memakai SameSite=None. Karena
+ * CORS saja tidak cukup untuk menahan request "simple", setiap request yang
  * mengubah data wajib berasal dari origin yang terdaftar di CORS_ORIGIN.
  */
 @Injectable()

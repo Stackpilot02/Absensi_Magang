@@ -14,6 +14,8 @@ describe('konfigurasi jam kerja', () => {
     'LATE_TOLERANCE_MINUTES',
     'COOKIE_SAME_SITE',
     'COOKIE_SECURE',
+    'HOST',
+    'PROXY_SHARED_SECRET',
   ] as const;
   let saved: Record<string, string | undefined>;
 
@@ -84,6 +86,22 @@ describe('konfigurasi jam kerja', () => {
 
     process.env.LATE_TOLERANCE_MINUTES = '1.5';
     expect(() => configuration()).toThrow(/LATE_TOLERANCE_MINUTES/);
+  });
+
+  it('membaca HOST dan PROXY_SHARED_SECRET', () => {
+    process.env.HOST = '127.0.0.1';
+    process.env.PROXY_SHARED_SECRET = 'abcdefghijklmnop';
+
+    const config = configuration();
+
+    expect(config.host).toBe('127.0.0.1');
+    expect(config.proxySharedSecret).toBe('abcdefghijklmnop');
+  });
+
+  it('menolak PROXY_SHARED_SECRET yang terlalu pendek', () => {
+    process.env.PROXY_SHARED_SECRET = 'pendek';
+
+    expect(() => configuration()).toThrow(/PROXY_SHARED_SECRET/);
   });
 
   describe('cookie sesi', () => {

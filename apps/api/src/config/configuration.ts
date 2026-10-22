@@ -4,8 +4,10 @@
  */
 export interface AppConfiguration {
   nodeEnv: string;
+  host: string;
   port: number;
   corsOrigin: string;
+  proxySharedSecret: string;
   jwt: {
     secret: string;
     expiresIn: string;
@@ -109,6 +111,19 @@ function readSameSite(value: string | undefined): SameSiteValue {
   return normalized as SameSiteValue;
 }
 
+/**
+ * Secret opsional yang dipakai Cloudflare Pages Function untuk menandai
+ * header `X-Client-IP` sebagai tepercaya. Tanpa secret, API memakai IP socket
+ * (di belakang Tunnel bisa berupa IP proxy, bukan IP pengguna).
+ */
+function readProxySharedSecret(value: string | undefined): string {
+  const secret = (value ?? '').trim();
+  if (secret && secret.length < 16) {
+    throw new Error('PROXY_SHARED_SECRET minimal 16 karakter bila diisi.');
+  }
+  return secret;
+}
+
 export const configuration = (): AppConfiguration => {
   const nodeEnv = process.env.NODE_ENV ?? 'development';
   const secret = process.env.JWT_SECRET ?? '';
@@ -130,8 +145,10 @@ export const configuration = (): AppConfiguration => {
 
   return {
     nodeEnv,
+    host: process.env.HOST?.trim() || '0.0.0.0',
     port: readNumber(process.env.PORT, 3001),
     corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    proxySharedSecret: readProxySharedSecret(process.env.PROXY_SHARED_SECRET),
     jwt: {
       secret: secret || 'dev-only-secret-jangan-dipakai-di-production',
       expiresIn: process.env.JWT_EXPIRES_IN ?? DEFAULT_JWT_EXPIRES_IN,
