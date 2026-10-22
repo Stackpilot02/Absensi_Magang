@@ -1,0 +1,24 @@
+# PostgreSQL lokal untuk pengembangan.
+# Jalankan: docker compose up -d
+# Kredensial di bawah hanya untuk lingkungan lokal, bukan production.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: absensi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: absensi
+      POSTGRES_PASSWORD: absensi_local_dev
+      POSTGRES_DB: absensi_magang
+    ports:
+      - "5433:5432"
+    volumes:
+      - absensi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U absensi -d absensi_magang"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  absensi_pgdata:

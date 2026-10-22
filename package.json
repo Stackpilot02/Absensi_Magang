@@ -1,0 +1,23 @@
+{
+  "name": "absensi-magang-bps",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem Absensi Pegawai Magang BPS Kabupaten Padang Lawas",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace @absensi/api",
+    "dev:web": "npm run dev --workspace @absensi/web",
+    "build": "npm run build --workspace @absensi/api && npm run build --workspace @absensi/web",
+    "test": "npm run test --workspace @absensi/api",
+    "lint": "npm run lint --workspace @absensi/api && npm run lint --workspace @absensi/web",
+    "db:generate": "npm run prisma:generate --workspace @absensi/api",
+    "db:migrate": "npm run prisma:migrate --workspace @absensi/api",
+    "db:seed": "npm run seed --workspace @absensi/api"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

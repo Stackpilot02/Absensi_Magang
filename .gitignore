@@ -1,0 +1,28 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment & secret
+.env
+.env.*
+!.env.example
+
+# Log
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Prisma
+apps/api/prisma/*.db
+apps/api/src/generated/
+
+# PostgreSQL lokal sementara (dev)
+.pgdata/

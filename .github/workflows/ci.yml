@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: absensi
+          POSTGRES_PASSWORD: absensi_ci
+          POSTGRES_DB: absensi_magang
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U absensi -d absensi_magang"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://absensi:absensi_ci@localhost:5432/absensi_magang?schema=public
+      JWT_SECRET: ci-only-secret-tidak-dipakai-di-production
+      JWT_EXPIRES_IN: 8h
+      CORS_ORIGIN: http://localhost:3000
+      TZ: Asia/Jakarta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependency
+        run: npm ci
+      - name: Generate Prisma Client
+        run: npm run db:generate
+      - name: Terapkan migrasi database
+        run: npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+      - name: Unit test backend
+        run: npm test
+      - name: Build backend
+        run: npm run build --workspace @absensi/api
+      - name: Build frontend
+        run: npm run build --workspace @absensi/web
