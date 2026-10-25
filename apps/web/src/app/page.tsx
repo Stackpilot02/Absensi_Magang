@@ -195,13 +195,13 @@ export default function LoginPage() {
               </p>
               <ul className="mt-2 space-y-1 text-[11.5px] text-ink-soft">
                 <li>
-                  <span className="font-medium text-ink">Admin:</span> admin@padanglawas.bps.go.id
+                  <span className="font-medium text-ink">Admin:</span>{' '}admin@padanglawas.bps.go.id
                 </li>
                 <li>
-                  <span className="font-medium text-ink">Magang:</span> dian1221
+                  <span className="font-medium text-ink">Magang:</span>{' '}warida1221
                 </li>
                 <li>
-                  <span className="font-medium text-ink">Password:</span> bps1221
+                  <span className="font-medium text-ink">Password:</span>{' '}bps1221
                 </li>
               </ul>
             </div>
