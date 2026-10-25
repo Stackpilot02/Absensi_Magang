@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  CalendarOff,
   ChevronDown,
   FileSpreadsheet,
   History,
@@ -48,14 +47,7 @@ const NAV_ITEMS: Array<{
     icon: Users,
     roles: ['ADMIN', 'PEMBIMBING', 'KEPALA_BPS'],
   },
-  { href: '/izin', label: 'Izin & Sakit', icon: CalendarOff, roles: ALL_ROLES, mobile: true },
-  {
-    href: '/kegiatan',
-    label: 'Lapor Kegiatan',
-    icon: NotebookPen,
-    roles: ALL_ROLES,
-    mobile: false,
-  },
+  { href: '/kegiatan', label: 'Lapor Kegiatan', icon: NotebookPen, roles: ALL_ROLES, mobile: false },
   { href: '/laporan', label: 'Laporan', icon: FileSpreadsheet, roles: ALL_ROLES, mobile: true },
   { href: '/pengaturan', label: 'Pengaturan', icon: Settings, roles: ['ADMIN'] },
   { href: '/profil', label: 'Profil', icon: UserRound, roles: ALL_ROLES, mobile: true },
