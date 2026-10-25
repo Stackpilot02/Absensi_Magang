@@ -225,3 +225,47 @@ Disarankan merge `feat/lapor-kegiatan` lebih dulu, lalu
   (link PR) tidak dipakai lagi.
 - Variabel `LOGIN_DEFAULT_DOMAIN` pada `apps/api/.env` lokal dihapus karena sudah tidak
   dipakai kode sejak login memakai kolom `username`.
+
+---
+
+## 9. Status produksi (25 Oktober 2026)
+
+Deployment dijalankan lewat jalur **tanpa domain** (`deploy/tailscale.md`), bukan Cloudflare
+Tunnel.
+
+| Komponen | Nilai |
+| --- | --- |
+| Frontend | `https://absensi-magang-azt.pages.dev` (Cloudflare Pages, static export) |
+| API | `https://absensi-vps.tail1b85de.ts.net` (Tailscale Funnel → `127.0.0.1:3001`) |
+| VPS | Ubuntu 24.04, user `absensi`, systemd `absensi-api`, repo di `/opt/absensi` |
+| Database | Neon (pooled + direct), `prisma migrate deploy` tanpa migrasi tertunda |
+| Secret | `/etc/absensi/api.env` (`640`, owner `root:absensi`) dan environment Pages |
+
+Konfigurasi penting:
+
+- `CORS_ORIGIN` di API = `https://absensi-magang-azt.pages.dev` (harus diperbarui bila URL
+  Pages berubah atau memakai custom domain).
+- `API_ORIGIN` pada environment Pages = `https://absensi-vps.tail1b85de.ts.net` (tanpa
+  trailing slash), dan `PROXY_SHARED_SECRET` sama persis dengan di VPS.
+- `NEXT_PUBLIC_SHOW_DEMO_HINTS=false` sehingga blok akun demo tidak tampil di produksi.
+- UFW aktif: hanya `22/tcp` dan `20128/tcp` terbuka; API tetap di loopback.
+
+Verifikasi yang sudah lulus:
+
+- `GET /api/health` dan `GET /api/health/db` langsung ke Funnel → `200`.
+- `GET /api/health` lewat `pages.dev` → `200` (Pages Function proxy berfungsi).
+- Login `POST /api/auth/login` lewat `pages.dev` → `200` dengan cookie
+  `absensi_token` `HttpOnly; Secure; SameSite=Lax`.
+- Bundle web produksi tidak memuat `localhost:3001` dan blok akun demo tidak dirender.
+- `deploy/vps/deploy.sh` dapat me-restart service tanpa password (`sudoers` terpasang).
+
+Yang belum dikerjakan:
+
+- **Backup R2** (`deploy/README.md` bagian 8) — belum ada bucket/kredensial rclone.
+- **Rotasi kredensial Neon** yang pernah tampil di percakapan.
+- **Bersihkan akun demo** di database produksi bila tidak dipakai.
+- Custom domain untuk Pages (opsional).
+
+Catatan operasional: URL `*.ts.net` stabil selama `tailscaled` aktif dan Funnel tidak
+di-reset. Bila hostname berubah, `API_ORIGIN` di Pages dan `CORS_ORIGIN` di API harus
+diperbarui lalu Pages di-redeploy.
