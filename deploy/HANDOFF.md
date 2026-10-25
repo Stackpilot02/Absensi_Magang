@@ -269,3 +269,17 @@ Yang belum dikerjakan:
 Catatan operasional: URL `*.ts.net` stabil selama `tailscaled` aktif dan Funnel tidak
 di-reset. Bila hostname berubah, `API_ORIGIN` di Pages dan `CORS_ORIGIN` di API harus
 diperbarui lalu Pages di-redeploy.
+
+### Isolasi database dev (25 Oktober 2026)
+
+- Branch Neon `production` dipakai API produksi di VPS.
+- Branch Neon `dev` (auto-delete: **Never**) dipakai pengembangan lokal, sehingga seed dan
+  `prisma migrate dev` tidak lagi menyentuh data produksi.
+- `apps/api/.env` lokal menunjuk ke host `ep-summer-base-...` (branch `dev`);
+  `/etc/absensi/api.env` di VPS menunjuk ke `ep-aged-resonance-...` (branch `production`).
+- Kedua environment memakai `connection_limit=3` + `pgbouncer=true` untuk `DATABASE_URL`,
+  dan `DIRECT_URL` tanpa `-pooler` untuk migrasi/seed.
+- Data awal branch `dev` disalin saat pembuatan branch: 10 user, 3 migrasi, kantor
+  BPS `1.0407875, 99.7441188`, radius 100 m.
+- Bila skema berubah: jalankan `prisma migrate dev` di lokal (branch `dev`), commit
+  migrasinya, lalu `prisma migrate deploy` di VPS lewat `deploy/vps/deploy.sh`.
