@@ -35,6 +35,9 @@ Cloudflare Pages  ── /api/* ──►  Cloudflare Pages Function
 > `cloudflared tunnel --url http://127.0.0.1:3001` menghasilkan URL `*.trycloudflare.com`
 > yang berubah setiap restart (tidak cocok untuk produksi). Untuk produksi tanpa domain,
 > alternatifnya Tailscale Funnel; namun panduan ini memakai Cloudflare Tunnel + domain.
+>
+> **Panduan alternatif tanpa domain:** lihat [`tailscale.md`](tailscale.md) — VPS +
+> Tailscale Funnel + Cloudflare Pages, tanpa Cloudflare Tunnel dan tanpa membeli domain.
 
 ---
 
