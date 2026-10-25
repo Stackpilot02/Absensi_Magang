@@ -196,3 +196,27 @@ Disarankan merge `feat/lapor-kegiatan` lebih dulu, lalu
   private key SSH, atau connection string Neon.
 - Gunakan token/SSH sementara dan cabut setelah selesai.
 - Jangan push ke `main` atau merge PR tanpa persetujuan.
+
+---
+
+## 8. Status merge ke `main` (25 Oktober 2026)
+
+- Branch `feat/deploy-cloudflare` sudah di-merge ke `main` pada 25 Oktober 2026
+  (merge commit `f274a51`), sehingga tidak perlu membuat PR deployment terpisah.
+- Konflik saat merge hanya di `apps/web/next.config.ts` dan `apps/web/.env.example`:
+
+  | Bagian | Penyelesaian |
+  | --- | --- |
+  | `output: 'export'` | Dipertahankan, tetapi hanya aktif saat build production |
+  | `images.unoptimized` | Dipertahankan (ikut static export) |
+  | `headers()` | Dihapus; header keamanan ada di `public/_headers` |
+  | `allowedDevOrigins` | Dipertahankan, nilainya dari env `ALLOWED_DEV_ORIGINS` |
+  | `rewrites()` `/api` | Hanya aktif saat dev |
+
+- `.env.example` web kini mendokumentasikan dua mode: dev (`http://localhost:3001/api`
+  atau `/api` + rewrite) dan production Cloudflare Pages (`/api`).
+- CI (`.github/workflows/ci.yml`) kini juga menjalankan `npm run lint` sehingga
+  typecheck Pages Function ikut diperiksa.
+- Langkah yang masih tersisa tetap sama seperti bagian 2: buat project Cloudflare Pages,
+  Tunnel, environment produksi di VPS, aktifkan backup R2, lalu verifikasi memakai
+  bagian 6 `deploy/README.md`.

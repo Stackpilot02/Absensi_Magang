@@ -188,6 +188,10 @@ NestJS `127.0.0.1:3001` → Neon.
 ### Status
 
 - Konfigurasi deployment disiapkan di branch `feat/deploy-cloudflare`.
+- Branch `feat/deploy-cloudflare` sudah **di-merge ke `main`** (25 Oktober 2026) sehingga
+  static export, Pages Function proxy `/api`, dan konfigurasi VPS/Tunnel/backup tersedia di
+  jalur produksi. `next.config.ts` hanya mengaktifkan `output: 'export'` saat build
+  production; di dev, `/api` diproxy lewat `rewrites` agar pengujian lokal tetap same-origin.
 - Eksekusi di VPS/Cloudflare/Neon/R2 **belum dilakukan** karena domain, akses SSH VPS,
   detail project Cloudflare, dan kredensial R2 belum tersedia.
 - Panduan operasional lengkap: `deploy/README.md`.
