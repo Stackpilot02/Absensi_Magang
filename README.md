@@ -30,10 +30,13 @@ Aplikasi full-stack untuk mencatat kehadiran pegawai magang dengan validasi loka
 │   │       ├── audit/       # audit log
 │   │       └── common/      # guard, decorator, util geo/waktu
 │   └── web/                 # Next.js frontend
+│       ├── public/          # _headers & _routes.json untuk Cloudflare Pages
 │       └── src/
 │           ├── app/         # halaman (login, dashboard, riwayat, dst.)
 │           ├── components/  # komponen UI shadcn-style + komponen aplikasi
 │           └── lib/         # API client, tipe, util, geolokasi
+├── functions/               # Cloudflare Pages Function proxy /api/*
+├── deploy/                  # konfigurasi VPS, Cloudflare Tunnel, backup R2
 ├── docker-compose.yml       # PostgreSQL lokal
 └── .github/workflows/ci.yml # pipeline CI (test + build)
 ```
@@ -183,15 +186,68 @@ Semua endpoint berada di prefix `/api`.
 
 ```bash
 npm test                              # unit test backend (Jest)
-npm run lint                          # typecheck backend & frontend
+npm run lint                          # typecheck backend, frontend, & Pages Function
 npm run build                         # build production kedua aplikasi
 ```
 
+> Build production memerlukan `NEXT_PUBLIC_API_URL`. Untuk verifikasi lokal dengan
+> arsitektur Cloudflare Pages, set `NEXT_PUBLIC_API_URL=/api` terlebih dahulu
+> (PowerShell: `$env:NEXT_PUBLIC_API_URL='/api'`).
+
 Unit test mencakup: perhitungan jarak geofencing, transisi status & keterlambatan,
 perhitungan tanggal zona Jakarta, deteksi manipulasi jam perangkat, aturan check-in/out,
-autentikasi & hashing password, serta pembuatan berkas Excel/PDF.
+autentikasi & hashing password, pembuatan berkas Excel/PDF, serta validasi IP klien dari
+proxy Cloudflare (`X-Client-IP` + `PROXY_SHARED_SECRET`).
 
-## Deployment
+## Deployment Produksi — Cloudflare Pages + VPS + Cloudflare Tunnel + Neon
+
+Arsitektur yang dipakai saat ini (biaya tambahan **Rp0** dengan asumsi VPS 2 GB dan domain
+sudah ada):
+
+| Komponen | Platform | Catatan |
+| --- | --- | --- |
+| Frontend | Cloudflare Pages | Next.js static export (`output: 'export'`), gratis |
+| Proxy API | Cloudflare Pages Function | `functions/api/[[path]].ts` meneruskan `/api/*` ke Tunnel |
+| Backend | VPS 2 GB + systemd | NestJS listen `127.0.0.1:3001`, tanpa membuka port 80/443 |
+| Jalur masuk | Cloudflare Tunnel | Hostname `api.<domain>` → `http://127.0.0.1:3001` |
+| Database | Neon PostgreSQL | Tetap memakai pooled `DATABASE_URL` + direct `DIRECT_URL` |
+| Backup | Cloudflare R2 | `pg_dump` harian, retensi lokal 14 hari / R2 30 hari |
+
+Panduan langkah demi langkah: [`deploy/README.md`](deploy/README.md).
+
+Ringkasan alur:
+
+1. Browser membuka `https://<project>.pages.dev` (atau custom domain).
+2. Request `/api/*` diproxy oleh Pages Function ke `https://api.<domain>` melalui Tunnel.
+3. API mengakses Neon; cookie JWT tetap first-party karena browser hanya melihat origin Pages.
+4. `PROXY_SHARED_SECRET` menandai `X-Client-IP` agar audit log dan rate limit memakai IP asli.
+
+Environment penting di production:
+
+```env
+# API VPS (/etc/absensi/api.env)
+NODE_ENV="production"
+HOST="127.0.0.1"
+PORT="3001"
+TZ="Asia/Jakarta"
+COOKIE_SECURE="true"
+COOKIE_SAME_SITE="lax"
+CORS_ORIGIN="https://<project>.pages.dev"
+PROXY_SHARED_SECRET="<openssl rand -hex 32>"
+
+# Cloudflare Pages (Variables and Secrets)
+NEXT_PUBLIC_API_URL="/api"
+API_ORIGIN="https://api.<domain>"
+PROXY_SHARED_SECRET="<sama dengan API>"
+```
+
+> Hostname Tunnel memerlukan domain yang DNS-nya dikelola Cloudflare; `*.pages.dev`
+> tidak bisa dipakai untuk Tunnel. Frontend boleh tetap memakai `*.pages.dev`.
+
+## Deployment (opsi lama: Vercel + Railway/Render)
+
+> **Catatan:** bagian ini dipertahankan sebagai opsi alternatif. Untuk produksi saat ini,
+> gunakan arsitektur Cloudflare Pages + VPS + Tunnel di atas.
 
 | Komponen | Platform | Catatan |
 | --- | --- | --- |
@@ -223,6 +279,11 @@ Catatan Neon untuk production:
 Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
 `COOKIE_SAME_SITE=none` dan `COOKIE_SECURE=true` agar cookie JWT terkirim.
 
+> **Pembaruan 22 Oktober 2026:** pada deployment Cloudflare Pages + Tunnel, browser hanya
+> berkomunikasi dengan origin Pages dan proxy `/api` meneruskan cookie. Karena itu production
+> memakai `COOKIE_SAME_SITE=lax` + `COOKIE_SECURE=true`; `SameSite=None` hanya berlaku untuk
+> opsi lama di atas.
+
 ## Catatan Keamanan
 
 - Password disimpan dengan `bcrypt` (cost 12); data password tidak pernah dikembalikan API.
@@ -230,14 +291,21 @@ Karena frontend (Vercel) dan backend (Railway) berbeda domain, set
 - Login dibatasi laju request (rate limit) untuk mencegah brute force.
 - Semua input divalidasi `class-validator` + `ValidationPipe` (whitelist, forbid unknown).
 - Query memakai Prisma sehingga bebas SQL injection; rendering React meng-escape XSS.
-- Header keamanan dasar dipasang di Next.js (`X-Frame-Options`, `nosniff`, `Referrer-Policy`).
+- Header keamanan dasar dipasang melalui `apps/web/public/_headers` (`X-Frame-Options`,
+  `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS) karena Next.js static export
+  tidak mendukung `headers()`.
 - `OriginGuard` menolak request yang mengubah data (POST/PATCH/PUT/DELETE) bila header
-  `Origin` berasal dari luar `CORS_ORIGIN`. Ini pertahanan CSRF karena di production
-  cookie memakai `SameSite=None` (frontend dan backend berbeda domain).
+  `Origin` berasal dari luar `CORS_ORIGIN`. Pada arsitektur Cloudflare Pages + Tunnel,
+  browser hanya berkomunikasi dengan origin Pages (proxy `/api`), sehingga production
+  memakai `SameSite=Lax`; `SameSite=None` hanya untuk opsi lama.
 - `COOKIE_SAME_SITE=none` wajib disertai `COOKIE_SECURE=true`; aplikasi menolak start
   bila kombinasinya salah, agar login tidak gagal diam-diam di browser.
-- Build production frontend gagal bila `NEXT_PUBLIC_API_URL` kosong atau bukan URL absolut,
-  sehingga tidak mungkin ter-deploy dengan fallback `localhost`.
+- `PROXY_SHARED_SECRET` hanya dipercaya bila cocok; API memvalidasi `X-Client-IP` sebagai
+  alamat IP sebelum memakainya untuk audit log dan rate limit. Header proxy dihapus dari
+  request sebelum masuk ke guard.
+- Build production frontend gagal bila `NEXT_PUBLIC_API_URL` kosong atau bukan path relatif
+  (`/api`) / URL absolut yang valid, sehingga tidak mungkin ter-deploy dengan fallback
+  `localhost`.
 - Secret & kredensial hanya dibaca dari environment variable, tidak di-hardcode.
 
 ## Catatan Konfigurasi Kantor

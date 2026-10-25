@@ -26,3 +26,10 @@ apps/api/src/generated/
 
 # PostgreSQL lokal sementara (dev)
 .pgdata/
+
+# Deployment & secret
+deploy/**/.env
+deploy/**/*.env
+deploy/cloudflared/*.json
+.dev.vars
+.wrangler/

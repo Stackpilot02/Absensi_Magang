@@ -1,0 +1,5 @@
+# Backup harian database Absensi ke Cloudflare R2.
+# Salin ke /etc/cron.d/absensi-backup (owner root, mode 644).
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+17 2 * * * root /opt/absensi/deploy/backup/backup-db.sh >> /var/log/absensi-backup.log 2>&1

@@ -1,0 +1,27 @@
+[Unit]
+Description=Absensi Magang API (NestJS)
+Documentation=https://github.com/Stackpilot02/Absensi_Magang
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=absensi
+Group=absensi
+WorkingDirectory=/opt/absensi
+EnvironmentFile=/etc/absensi/api.env
+ExecStart=/usr/bin/node apps/api/dist/main.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/absensi
+LimitNOFILE=65535
+SyslogIdentifier=absensi-api
+
+[Install]
+WantedBy=multi-user.target

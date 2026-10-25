@@ -1,0 +1,18 @@
+# Konfigurasi Cloudflare Tunnel untuk API Absensi.
+# Salin ke /etc/cloudflared/config.yml, lalu ganti placeholder.
+#
+# Buat tunnel:
+#   cloudflared tunnel create absensi-api
+#   cloudflared tunnel route dns absensi-api api.example.com
+#
+# File credentials TIDAK boleh masuk git (lihat .gitignore).
+
+tunnel: GANTI_DENGAN_TUNNEL_UUID
+credentials-file: /etc/cloudflared/GANTI_DENGAN_TUNNEL_UUID.json
+
+ingress:
+  - hostname: api.example.com
+    service: http://127.0.0.1:3001
+    originRequest:
+      connectTimeout: 10s
+  - service: http_status:404
