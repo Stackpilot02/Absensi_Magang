@@ -220,3 +220,8 @@ Disarankan merge `feat/lapor-kegiatan` lebih dulu, lalu
 - Langkah yang masih tersisa tetap sama seperti bagian 2: buat project Cloudflare Pages,
   Tunnel, environment produksi di VPS, aktifkan backup R2, lalu verifikasi memakai
   bagian 6 `deploy/README.md`.
+- Branch `feat/deploy-cloudflare` dan `feat/lapor-kegiatan` sudah dihapus (lokal maupun
+  remote) karena seluruh isinya sudah masuk `main` lewat merge `f274a51`. Bagian 6
+  (link PR) tidak dipakai lagi.
+- Variabel `LOGIN_DEFAULT_DOMAIN` pada `apps/api/.env` lokal dihapus karena sudah tidak
+  dipakai kode sejak login memakai kolom `username`.
