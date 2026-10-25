@@ -45,6 +45,8 @@ jobs:
         run: npm run db:generate
       - name: Terapkan migrasi database
         run: npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+      - name: Lint dan typecheck (API, web, Pages Function)
+        run: npm run lint
       - name: Unit test backend
         run: npm test
       - name: Build backend

@@ -46,18 +46,17 @@ const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? '')
 const isDev = process.env.NODE_ENV !== 'production';
 
 const nextConfig: NextConfig = {
-  // Cloudflare Pages hanya menyajikan berkas statis. Header keamanan dipindah
-  // ke `public/_headers` karena `headers()` tidak didukung static export.
-  output: 'export',
+  // Cloudflare Pages hanya menyajikan berkas statis, jadi static export hanya
+  // diaktifkan saat build production. Saat dev, export dimatikan agar proxy
+  // /api dan peringatan "rewrites tidak didukung export" tidak muncul.
+  // Header keamanan ada di `public/_headers` karena `headers()` tidak didukung
+  // static export.
+  ...(isDev ? {} : { output: 'export' as const, images: { unoptimized: true } }),
   reactStrictMode: true,
   poweredByHeader: false,
-  // Static export tidak memiliki image optimizer server-side.
-  images: { unoptimized: true },
   allowedDevOrigins,
-  // ponytail: dev saja — static export tidak mendukung rewrites, jadi kunci ini
-  // hanya dipasang saat dev agar build production tidak memunculkan peringatan.
-  // Saat dev, /api diproxy ke backend agar same-origin (bebas CORS & cookie
-  // lintas host) walau web dibuka via localhost, IP LAN, atau tunnel.
+  // ponytail: dev saja — /api diproxy ke backend agar same-origin (bebas CORS &
+  // cookie lintas host) walau web dibuka via localhost, IP LAN, atau tunnel.
   ...(isDev
     ? {
         async rewrites() {
