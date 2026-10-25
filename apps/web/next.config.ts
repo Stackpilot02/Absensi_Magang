@@ -24,15 +24,23 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
+/**
+ * Origin yang boleh memakai resource dev Next.js (HMR/asset) saat diakses dari
+ * perangkat lain. Isi variabel `ALLOWED_DEV_ORIGINS` dipisah koma, mis.
+ * `192.168.100.48,abc.trycloudflare.com`. Kosong = hanya localhost.
+ */
+const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // ponytail: hanya dev. HMR/asset dev diblokir bila diakses via IP LAN.
-  // Tambah IP lain di sini bila berpindah jaringan.
-  allowedDevOrigins: ['192.168.100.48', 'localhost'],
+  allowedDevOrigins,
   async rewrites() {
     // ponytail: dev saja — proxy /api ke backend agar same-origin (bebas CORS
-    // & cookie lintas host) walau web dibuka via localhost maupun IP LAN.
+    // & cookie lintas host) walau web dibuka via localhost, IP LAN, atau tunnel.
     return process.env.NODE_ENV === 'production'
       ? []
       : [{ source: '/api/:path*', destination: 'http://localhost:3001/api/:path*' }];
