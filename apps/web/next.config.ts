@@ -27,6 +27,16 @@ if (process.env.NODE_ENV === 'production') {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // ponytail: hanya dev. HMR/asset dev diblokir bila diakses via IP LAN.
+  // Tambah IP lain di sini bila berpindah jaringan.
+  allowedDevOrigins: ['192.168.100.48', 'localhost'],
+  async rewrites() {
+    // ponytail: dev saja — proxy /api ke backend agar same-origin (bebas CORS
+    // & cookie lintas host) walau web dibuka via localhost maupun IP LAN.
+    return process.env.NODE_ENV === 'production'
+      ? []
+      : [{ source: '/api/:path*', destination: 'http://localhost:3001/api/:path*' }];
+  },
   async headers() {
     return [
       {
